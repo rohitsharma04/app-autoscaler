@@ -28,6 +28,7 @@ var _ = Describe("Apppoller", func() {
 		fclock    *fakeclock.FakeClock
 		buffer    *gbytes.Buffer
 		timestamp int64
+		dataChan  chan *models.AppInstanceMetric
 	)
 
 	BeforeEach(func() {
@@ -39,7 +40,9 @@ var _ = Describe("Apppoller", func() {
 		buffer = logger.Buffer()
 
 		fclock = fakeclock.NewFakeClock(time.Now())
-		poller = NewAppPoller(logger, "test-app-id", TestCollectInterval, cfc, noaa, database, fclock)
+		dataChan = make(chan *models.AppInstanceMetric)
+
+		poller = NewAppPoller(logger, "test-app-id", TestCollectInterval, cfc, noaa, database, fclock, dataChan)
 		timestamp = 111111
 	})
 

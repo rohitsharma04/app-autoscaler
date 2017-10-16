@@ -29,6 +29,7 @@ var _ = Describe("AppStreamer", func() {
 		msgChan      chan *events.Envelope
 		errChan      chan error
 		fclock       *fakeclock.FakeClock
+		dataChan     chan *models.AppInstanceMetric
 	)
 
 	BeforeEach(func() {
@@ -39,8 +40,9 @@ var _ = Describe("AppStreamer", func() {
 		logger := lagertest.NewTestLogger("AppStreamer-test")
 		buffer = logger.Buffer()
 		fclock = fakeclock.NewFakeClock(time.Now())
+		dataChan = make(chan *models.AppInstanceMetric)
 
-		streamer = NewAppStreamer(logger, "an-app-id", TestCollectInterval, cfc, noaaConsumer, database, fclock)
+		streamer = NewAppStreamer(logger, "an-app-id", TestCollectInterval, cfc, noaaConsumer, database, fclock, dataChan)
 
 		msgChan = make(chan *events.Envelope)
 		errChan = make(chan error, 1)
