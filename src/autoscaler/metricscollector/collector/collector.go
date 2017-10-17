@@ -52,6 +52,7 @@ func NewCollector(refreshInterval time.Duration, collectInterval time.Duration, 
 func (c *Collector) Start() {
 	c.ticker = c.cclock.NewTicker(c.refreshInterval)
 	go c.startAppRefresh()
+	go c.SaveMetricsInDB()
 	c.logger.Info("collector-started")
 }
 
@@ -123,7 +124,7 @@ func (c *Collector) GetCollectorAppIds() []string {
 }
 
 func (c *Collector) SaveMetricsInDB() {
-	ticker := c.cclock.NewTicker(c.collectInterval * time.Second)
+	ticker := c.cclock.NewTicker(c.collectInterval)
 	metrics := make([]*models.AppInstanceMetric, 0)
 	for {
 		select {
