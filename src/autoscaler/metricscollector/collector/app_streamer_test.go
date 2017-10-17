@@ -21,28 +21,28 @@ import (
 var _ = Describe("AppStreamer", func() {
 
 	var (
-		cfc          *fakes.FakeCfClient
-		noaaConsumer *fakes.FakeNoaaConsumer
-		database     *fakes.FakeInstanceMetricsDB
-		streamer     AppCollector
-		buffer       *gbytes.Buffer
-		msgChan      chan *events.Envelope
-		errChan      chan error
-		fclock       *fakeclock.FakeClock
-		dataChan     chan *models.AppInstanceMetric
+		cfc               *fakes.FakeCfClient
+		noaaConsumer      *fakes.FakeNoaaConsumer
+		instanceMetricsDb *fakes.FakeInstanceMetricsDB
+		streamer          AppCollector
+		buffer            *gbytes.Buffer
+		msgChan           chan *events.Envelope
+		errChan           chan error
+		fclock            *fakeclock.FakeClock
+		dataChan          chan *models.AppInstanceMetric
 	)
 
 	BeforeEach(func() {
 		cfc = &fakes.FakeCfClient{}
 		noaaConsumer = &fakes.FakeNoaaConsumer{}
-		database = &fakes.FakeInstanceMetricsDB{}
+		instanceMetricsDb = &fakes.FakeInstanceMetricsDB{}
 
 		logger := lagertest.NewTestLogger("AppStreamer-test")
 		buffer = logger.Buffer()
 		fclock = fakeclock.NewFakeClock(time.Now())
 		dataChan = make(chan *models.AppInstanceMetric)
 
-		streamer = NewAppStreamer(logger, "an-app-id", TestCollectInterval, cfc, noaaConsumer, database, fclock, dataChan)
+		streamer = NewAppStreamer(logger, "an-app-id", TestCollectInterval, cfc, noaaConsumer, instanceMetricsDb, fclock, dataChan)
 
 		msgChan = make(chan *events.Envelope)
 		errChan = make(chan error, 1)
@@ -74,9 +74,8 @@ var _ = Describe("AppStreamer", func() {
 					msgChan <- noaa.NewContainerEnvelope(222222, "an-app-id", 1, 30.6, 200000000, 1000000000, 300000000, 2000000000)
 				}()
 			})
-			It("Saves memory and throughput metrics to database", func() {
-				Eventually(database.SaveMetricCallCount).Should(Equal(4))
-				Expect(database.SaveMetricArgsForCall(0)).To(Equal(&models.AppInstanceMetric{
+			It("sends container metrics to channel", func() {
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 0,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -85,7 +84,7 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "95",
 					Timestamp:     111111,
 				}))
-				Expect(database.SaveMetricArgsForCall(1)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 0,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -94,8 +93,7 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "33",
 					Timestamp:     111111,
 				}))
-
-				Expect(database.SaveMetricArgsForCall(2)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 1,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -104,8 +102,7 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "191",
 					Timestamp:     222222,
 				}))
-
-				Expect(database.SaveMetricArgsForCall(3)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 1,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -114,50 +111,17 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "67",
 					Timestamp:     222222,
 				}))
-
-				By("collecting and computing throughput")
-				Consistently(database.SaveMetricCallCount).Should(Equal(4))
-
-				By("save throughput after the collect interval")
-				fclock.WaitForWatcherAndIncrement(TestCollectInterval)
-				Eventually(database.SaveMetricCallCount).Should(Equal(5))
-				Expect(database.SaveMetricArgsForCall(4)).To(Equal(&models.AppInstanceMetric{
-					AppId:         "an-app-id",
-					InstanceIndex: 0,
-					CollectedAt:   fclock.Now().UnixNano(),
-					Name:          models.MetricNameThroughput,
-					Unit:          models.UnitRPS,
-					Value:         "0",
-					Timestamp:     fclock.Now().UnixNano(),
-				}))
-			})
-
-			Context("when saving to database fails", func() {
-				BeforeEach(func() {
-					database.SaveMetricReturns(errors.New("an error"))
-				})
-				It("logs the errors", func() {
-					Eventually(buffer).Should(gbytes.Say("process-event-save-metric"))
-					Eventually(buffer).Should(gbytes.Say("an error"))
-				})
 			})
 		})
 
 		Context("when there are httpstartstop events", func() {
-			It("Saves throughput and responsetime metrics to database with the given time interval", func() {
-				go func() {
-					msgChan <- noaa.NewHttpStartStopEnvelope(111111, 100000000, 200000000, 0)
-					msgChan <- noaa.NewHttpStartStopEnvelope(222222, 300000000, 600000000, 0)
-				}()
+			It("sends metrics through channel", func() {
+				msgChan <- noaa.NewHttpStartStopEnvelope(111111, 100000000, 200000000, 0)
+				msgChan <- noaa.NewHttpStartStopEnvelope(222222, 300000000, 600000000, 0)
 
-				By("collecting and computing throughput and responsetime for first interval")
-				Consistently(database.SaveMetricCallCount).Should(Equal(0))
-
-				By("save throughput and responsetime metric after the first collect interval")
 				fclock.WaitForWatcherAndIncrement(TestCollectInterval)
-				Eventually(database.SaveMetricCallCount).Should(Equal(2))
 
-				Expect(database.SaveMetricArgsForCall(0)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 0,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -166,7 +130,7 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "2",
 					Timestamp:     fclock.Now().UnixNano(),
 				}))
-				Expect(database.SaveMetricArgsForCall(1)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 0,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -176,20 +140,12 @@ var _ = Describe("AppStreamer", func() {
 					Timestamp:     fclock.Now().UnixNano(),
 				}))
 
-				go func() {
-					msgChan <- noaa.NewHttpStartStopEnvelope(333333, 100000000, 300000000, 1)
-					msgChan <- noaa.NewHttpStartStopEnvelope(555555, 300000000, 600000000, 1)
-					msgChan <- noaa.NewHttpStartStopEnvelope(666666, 300000000, 700000000, 1)
-				}()
+				msgChan <- noaa.NewHttpStartStopEnvelope(333333, 100000000, 300000000, 1)
+				msgChan <- noaa.NewHttpStartStopEnvelope(555555, 300000000, 600000000, 1)
+				msgChan <- noaa.NewHttpStartStopEnvelope(666666, 300000000, 700000000, 1)
+				fclock.WaitForWatcherAndIncrement(TestCollectInterval)
 
-				By("collecting and computing throughput and responsetime for second interval")
-				Consistently(database.SaveMetricCallCount).Should(Equal(2))
-
-				By("save throughput and responsetime metric after the second collect interval")
-				fclock.Increment(TestCollectInterval)
-				Eventually(database.SaveMetricCallCount).Should(Equal(4))
-
-				Expect(database.SaveMetricArgsForCall(2)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 1,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -198,7 +154,7 @@ var _ = Describe("AppStreamer", func() {
 					Value:         "3",
 					Timestamp:     fclock.Now().UnixNano(),
 				}))
-				Expect(database.SaveMetricArgsForCall(3)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 1,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -210,43 +166,23 @@ var _ = Describe("AppStreamer", func() {
 			})
 
 			Context("when the app has multiple instances", func() {
-				BeforeEach(func() {
-					go func() {
-						msgChan <- noaa.NewHttpStartStopEnvelope(111111, 100000000, 200000000, 0)
-						msgChan <- noaa.NewHttpStartStopEnvelope(222222, 300000000, 500000000, 1)
-						msgChan <- noaa.NewHttpStartStopEnvelope(333333, 200000000, 600000000, 2)
-						msgChan <- noaa.NewHttpStartStopEnvelope(555555, 300000000, 500000000, 2)
-					}()
-
+				JustBeforeEach(func() {
+					msgChan <- noaa.NewHttpStartStopEnvelope(111111, 100000000, 200000000, 0)
+					msgChan <- noaa.NewHttpStartStopEnvelope(222222, 300000000, 500000000, 1)
+					msgChan <- noaa.NewHttpStartStopEnvelope(333333, 200000000, 600000000, 2)
+					msgChan <- noaa.NewHttpStartStopEnvelope(555555, 300000000, 500000000, 2)
 				})
 				It("saves throughput and responsetime metrics of multiple instances", func() {
-					Consistently(database.SaveMetricCallCount).Should(Equal(0))
 					fclock.WaitForWatcherAndIncrement(TestCollectInterval)
-					Eventually(database.SaveMetricCallCount).Should(Equal(6))
+					Eventually(dataChan).Should(Receive())
+					Eventually(dataChan).Should(Receive())
+					Eventually(dataChan).Should(Receive())
+					Eventually(dataChan).Should(Receive())
+					Eventually(dataChan).Should(Receive())
+					Eventually(dataChan).Should(Receive())
+					Consistently(dataChan).ShouldNot(Receive())
 				})
 			})
-
-			Context("when database fails", func() {
-				BeforeEach(func() {
-					database.SaveMetricReturns(errors.New("an error"))
-					go func() {
-						msgChan <- noaa.NewHttpStartStopEnvelope(111111, 100000000, 200000000, 0)
-					}()
-				})
-				It("logs the errors", func() {
-					Consistently(database.SaveMetricCallCount).Should(Equal(0))
-
-					fclock.WaitForWatcherAndIncrement(TestCollectInterval)
-					Eventually(buffer).Should(gbytes.Say("save-metric-to-database"))
-					Eventually(buffer).Should(gbytes.Say("an error"))
-					Eventually(buffer).Should(gbytes.Say("throughput"))
-
-					Eventually(buffer).Should(gbytes.Say("save-metric-to-database"))
-					Eventually(buffer).Should(gbytes.Say("an error"))
-					Eventually(buffer).Should(gbytes.Say("responsetime"))
-				})
-			})
-
 		})
 
 		Context("when there is no containermetrics or httpstartstop event", func() {
@@ -256,14 +192,11 @@ var _ = Describe("AppStreamer", func() {
 					msgChan <- &events.Envelope{EventType: &eventType}
 				}()
 			})
-			It("Saves throughput metric to database", func() {
-				By("collecting and computing throughput")
-				Consistently(database.SaveMetricCallCount).Should(Equal(0))
+			It("Saves throughput metric to instanceMetricsDb", func() {
 
 				By("save throughput after the collect interval")
 				fclock.WaitForWatcherAndIncrement(TestCollectInterval)
-				Eventually(database.SaveMetricCallCount).Should(Equal(1))
-				Expect(database.SaveMetricArgsForCall(0)).To(Equal(&models.AppInstanceMetric{
+				Expect(<-dataChan).To(Equal(&models.AppInstanceMetric{
 					AppId:         "an-app-id",
 					InstanceIndex: 0,
 					CollectedAt:   fclock.Now().UnixNano(),
@@ -289,10 +222,6 @@ var _ = Describe("AppStreamer", func() {
 				Eventually(buffer).Should(gbytes.Say("noaa-reconnected"))
 				Eventually(buffer).Should(gbytes.Say("an-app-id"))
 				Consistently(buffer).ShouldNot(gbytes.Say("compute-and-save-metrics"))
-
-				fclock.Increment(TestCollectInterval)
-				Consistently(buffer).ShouldNot(gbytes.Say("noaa-reconnected"))
-				Eventually(buffer).Should(gbytes.Say("compute-and-save-metrics"))
 			})
 		})
 	})
