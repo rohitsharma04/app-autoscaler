@@ -7,13 +7,14 @@ import (
 )
 
 type CfConfig struct {
-	Api       string `yaml:"api"`
-	GrantType string `yaml:"grant_type"`
-	Username  string `yaml:"username"`
-	Password  string `yaml:"password"`
-	ClientId  string `yaml:"client_id"`
-	Secret    string `yaml:"secret"`
-	SkipSSLValidation bool `yaml:"skip_ssl_validation"`
+	Api               string `yaml:"api"`
+	GrantType         string `yaml:"grant_type"`
+	Username          string `yaml:"username"`
+	Password          string `yaml:"password"`
+	ClientId          string `yaml:"client_id"`
+	Secret            string `yaml:"secret"`
+	SkipSSLValidation bool   `yaml:"skip_ssl_validation"`
+	UAAEndpoint       string `yaml:"uaa_api"`
 }
 
 func (conf *CfConfig) Validate() error {

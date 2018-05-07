@@ -25,11 +25,15 @@ const (
 
 	ActiveSchedulesPath         = "/v1/apps/{appid}/active_schedules"
 	GetActiveSchedulesRouteName = "GetActiveSchedules"
+
+	CustomMetricsPath          = "/v1/metrics"
+	PostCustomMetricsRouteName = "PostCustomMetrics"
 )
 
 type AutoScalerRoute struct {
 	metricsCollectorRoutes *mux.Router
 	scalingEngineRoutes    *mux.Router
+	metricsForwarderRoutes *mux.Router
 }
 
 var autoScalerRouteInstance *AutoScalerRoute = newRouters()
@@ -38,6 +42,7 @@ func newRouters() *AutoScalerRoute {
 	instance := &AutoScalerRoute{
 		metricsCollectorRoutes: mux.NewRouter(),
 		scalingEngineRoutes:    mux.NewRouter(),
+		metricsForwarderRoutes: mux.NewRouter(),
 	}
 
 	instance.metricsCollectorRoutes.Path(MemoryMetricPath).Methods(http.MethodGet).Name(GetMemoryMetricRouteName)
@@ -49,6 +54,8 @@ func newRouters() *AutoScalerRoute {
 	instance.scalingEngineRoutes.Path(ActiveSchedulePath).Methods(http.MethodDelete).Name(DeleteActiveScheduleRouteName)
 	instance.scalingEngineRoutes.Path(ActiveSchedulesPath).Methods(http.MethodGet).Name(GetActiveSchedulesRouteName)
 
+	instance.metricsForwarderRoutes.Path(CustomMetricsPath).Methods(http.MethodPost).Name(PostCustomMetricsRouteName)
+
 	return instance
 
 }
@@ -57,4 +64,7 @@ func MetricsCollectorRoutes() *mux.Router {
 }
 func ScalingEngineRoutes() *mux.Router {
 	return autoScalerRouteInstance.scalingEngineRoutes
+}
+func MetricsForwarderRoutes() *mux.Router {
+	return autoScalerRouteInstance.metricsForwarderRoutes
 }

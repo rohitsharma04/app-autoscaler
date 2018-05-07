@@ -38,8 +38,8 @@ var _ = Describe("AppEvaluationManager", func() {
 			ScalingPolicy: &models.ScalingPolicy{
 				InstanceMax: 5,
 				InstanceMin: 1,
-				ScalingRules: []*models.ScalingRule{
-					{
+				ScalingRules: models.ScalingRule{
+					StandardMetrics: []*models.MetricPolicy{{
 						MetricType:            testMetricName,
 						StatWindowSeconds:     200,
 						BreachDurationSeconds: 200,
@@ -47,7 +47,7 @@ var _ = Describe("AppEvaluationManager", func() {
 						Threshold:             80,
 						Operator:              ">=",
 						Adjustment:            "1",
-					},
+					}},
 				},
 			},
 		}
@@ -57,8 +57,8 @@ var _ = Describe("AppEvaluationManager", func() {
 			ScalingPolicy: &models.ScalingPolicy{
 				InstanceMax: 5,
 				InstanceMin: 1,
-				ScalingRules: []*models.ScalingRule{
-					{
+				ScalingRules: models.ScalingRule{
+					StandardMetrics: []*models.MetricPolicy{{
 						MetricType:            testMetricName,
 						StatWindowSeconds:     300,
 						BreachDurationSeconds: 300,
@@ -66,7 +66,7 @@ var _ = Describe("AppEvaluationManager", func() {
 						Threshold:             20,
 						Operator:              "<=",
 						Adjustment:            "-1",
-					},
+					}},
 				},
 			},
 		}
@@ -148,7 +148,7 @@ var _ = Describe("AppEvaluationManager", func() {
 				})
 
 				JustBeforeEach(func() {
-					manager.SetCoolDownExpired(testAppId2, fakeTime.Add(time.Duration(30 * testEvaluateInterval)).UnixNano())
+					manager.SetCoolDownExpired(testAppId2, fakeTime.Add(time.Duration(30*testEvaluateInterval)).UnixNano())
 				})
 
 				It("should add triggers to evaluate after cooldown expired", func() {

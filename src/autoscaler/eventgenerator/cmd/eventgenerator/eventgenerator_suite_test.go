@@ -135,22 +135,24 @@ func initDB() {
 
 	_, err = egDB.Exec("DELETE from policy_json")
 	Expect(err).NotTo(HaveOccurred())
-
 	policy := fmt.Sprintf(`
 		{
 		   "instance_min_count":1,
 		   "instance_max_count":5,
-		   "scaling_rules":[
-		      {
-		         "metric_type":"a-metric-type",
-		         "stat_window_secs":300,
-		         "breach_duration_secs":%d,
-		         "threshold":300,
-		         "operator":">",
-		         "cool_down_secs":300,
-		         "adjustment":"+1"
-		      }
-		   ]
+		   "scaling_rules":
+			{
+				"standard_metrics": [
+					{
+					"metric_type":"a-metric-type",
+					"stat_window_secs":300,
+					"breach_duration_secs":%d,
+					"threshold":300,
+					"operator":">",
+					"cool_down_secs":300,
+					"adjustment":"+1"
+					}
+				]
+		   }
 		}`, breachDurationSecs)
 	query := "INSERT INTO policy_json(app_id, policy_json, guid) values($1, $2, $3)"
 	_, err = egDB.Exec(query, testAppId, policy, "1234")

@@ -79,3 +79,6 @@
 [submodule "src/github.com/facebookgo/clock"]
 	path = src/github.com/facebookgo/clock
 	url = https://github.com/facebookgo/clock
+[submodule "src/github.com/cloudfoundry-incubator/uaago"]
+	path = src/github.com/cloudfoundry-incubator/uaago
+	url = https://github.com/cloudfoundry-incubator/uaago

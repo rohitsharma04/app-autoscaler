@@ -1,0 +1,6 @@
+server_port: 8081
+log_level: info
+metron_address: 127.0.0.1:3457
+loggregator_ca_cert_path: "../testcerts/ca.crt"
+loggregator_cert_path: "../testcerts/client.crt"
+loggregator_key_path: "../testcerts/client.key"

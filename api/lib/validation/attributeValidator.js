@@ -238,38 +238,45 @@ var validateSpecificDateErrors = function(inputSpecificDates) {
 var validateScalingRuleThresholdValue = function(scalingRules){
   var errors = [];
   var errorCount = 0;
-  for(let i=0; i < scalingRules.length; i++){
-    switch(scalingRules[i]['metric_type']){
+  for(let i=0; i < scalingRules.standard_metrics.length; i++){
+    switch(scalingRules.standard_metrics[i]['metric_type']){
       case 'memoryused':
-        if(scalingRules[i]['threshold'] <= 0){
-          errors[errorCount++] = createErrorResponse('scaling_rules['+i+'].threshold',
+        if(scalingRules.standard_metrics[i]['threshold'] <= 0){
+          errors[errorCount++] = createErrorResponse('scaling_rules.standard_metrics['+i+'].threshold',
             'threshold value for metric_type memoryused should be greater than 0',scalingRules[i],
-            'scaling_rules['+i+'].threshold value should be greater than 0');
+            'scaling_rules.standard_metrics['+i+'].threshold value should be greater than 0');
         }
         break;
       case 'memoryutil':
-        if(scalingRules[i]['threshold'] <= 0 || scalingRules[i]['threshold'] > 100){
-          errors[errorCount++] = createErrorResponse('scaling_rules['+i+'].threshold',
-            'threshold value for metric_type memoryutil should be greater than 0 and less than equal to 100',scalingRules[i],
-            'scaling_rules['+i+'].threshold value should be greater than 0 and less than equal to 100');
+        if(scalingRules.standard_metrics[i]['threshold'] <= 0 || scalingRules.standard_metrics[i]['threshold'] > 100){
+          errors[errorCount++] = createErrorResponse('scaling_rules.standard_metrics['+i+'].threshold',
+            'threshold value for metric_type memoryutil should be greater than 0 and less than equal to 100',scalingRules.standard_metrics[i],
+            'scaling_rules.standard_metrics['+i+'].threshold value should be greater than 0 and less than equal to 100');
         }
         break;
       case 'responsetime':
-        if(scalingRules[i]['threshold'] <= 0){
-          errors[errorCount++] = createErrorResponse('scaling_rules['+i+'].threshold',
-            'threshold value for metric_type responsetime should be greater than 0',scalingRules[i],
-            'scaling_rules['+i+'].threshold value should be greater than 0');
+        if(scalingRules.standard_metrics[i]['threshold'] <= 0){
+          errors[errorCount++] = createErrorResponse('scaling_rules.standard_metrics['+i+'].threshold',
+            'threshold value for metric_type responsetime should be greater than 0',scalingRules.standard_metrics[i],
+            'scaling_rules.standard_metrics['+i+'].threshold value should be greater than 0');
         }
         break;
       case 'throughput':
-        if(scalingRules[i]['threshold'] <= 0){
-          errors[errorCount++] = createErrorResponse('scaling_rules['+i+'].threshold',
-            'threshold value for metric_type throughput should be greater than 0',scalingRules[i],
-            'scaling_rules['+i+'].threshold value should be greater than 0');
+        if(scalingRules.standard_metrics[i]['threshold'] <= 0){
+          errors[errorCount++] = createErrorResponse('scaling_rules.standard_metrics['+i+'].threshold',
+            'threshold value for metric_type throughput should be greater than 0',scalingRules.standard_metrics[i],
+            'scaling_rules.standard_metrics['+i+'].threshold value should be greater than 0');
         }
         break;
       default:
         break;
+    }
+  }
+  for(let i=0; i < scalingRules.custom_metrics.length; i++){
+    if(scalingRules.custom_metrics[i]['threshold'] <= 0){
+      errors[errorCount++] = createErrorResponse('scaling_rules.custom_metrics['+i+'].threshold',
+        'threshold value for metric_type '+scalingRules.custom_metrics[i].metric_type+' should be greater than 0',scalingRules.custom_metrics[i],
+        'scaling_rules.custom_metrics['+i+'].threshold value should be greater than 0');
     }
   }
   return errors;

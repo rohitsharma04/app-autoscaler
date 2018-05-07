@@ -120,25 +120,32 @@ var _ = Describe("PolicySQLDB", func() {
 			insertPolicy("an-app-id", &models.ScalingPolicy{
 				InstanceMin: 1,
 				InstanceMax: 6,
-				ScalingRules: []*models.ScalingRule{{
-					MetricType:            testMetricName,
-					StatWindowSeconds:     120,
-					BreachDurationSeconds: 180,
-					Threshold:             1048576000,
-					Operator:              ">",
-					CoolDownSeconds:       300,
-					Adjustment:            "+10%"}}})
+				ScalingRules: models.ScalingRule{
+					StandardMetrics: []*models.MetricPolicy{{
+						MetricType:            testMetricName,
+						StatWindowSeconds:     120,
+						BreachDurationSeconds: 180,
+						Threshold:             1048576000,
+						Operator:              ">",
+						CoolDownSeconds:       300,
+						Adjustment:            "+10%",
+					}},
+				}})
+
 			insertPolicy("another-app-id", &models.ScalingPolicy{
 				InstanceMin: 2,
 				InstanceMax: 8,
-				ScalingRules: []*models.ScalingRule{{
-					MetricType:            testMetricName,
-					StatWindowSeconds:     120,
-					BreachDurationSeconds: 300,
-					Threshold:             104857600,
-					Operator:              "<",
-					CoolDownSeconds:       120,
-					Adjustment:            "-2"}}})
+				ScalingRules: models.ScalingRule{
+					StandardMetrics: []*models.MetricPolicy{{
+						MetricType:            testMetricName,
+						StatWindowSeconds:     120,
+						BreachDurationSeconds: 300,
+						Threshold:             104857600,
+						Operator:              "<",
+						CoolDownSeconds:       120,
+						Adjustment:            "-2",
+					}},
+				}})
 		})
 
 		AfterEach(func() {
@@ -160,14 +167,17 @@ var _ = Describe("PolicySQLDB", func() {
 				Expect(*scalingPolicy).To(Equal(models.ScalingPolicy{
 					InstanceMin: 1,
 					InstanceMax: 6,
-					ScalingRules: []*models.ScalingRule{{
-						MetricType:            testMetricName,
-						StatWindowSeconds:     120,
-						BreachDurationSeconds: 180,
-						Threshold:             1048576000,
-						Operator:              ">",
-						CoolDownSeconds:       300,
-						Adjustment:            "+10%"}}}))
+					ScalingRules: models.ScalingRule{
+						StandardMetrics: []*models.MetricPolicy{{
+							MetricType:            testMetricName,
+							StatWindowSeconds:     120,
+							BreachDurationSeconds: 180,
+							Threshold:             1048576000,
+							Operator:              ">",
+							CoolDownSeconds:       300,
+							Adjustment:            "+10%",
+						}},
+					}}))
 			})
 
 		})

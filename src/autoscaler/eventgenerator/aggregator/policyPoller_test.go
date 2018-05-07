@@ -4,12 +4,13 @@ import (
 	. "autoscaler/eventgenerator/aggregator"
 	"autoscaler/eventgenerator/aggregator/fakes"
 	"autoscaler/models"
+	"errors"
+	"time"
+
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
-	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 var _ = Describe("PolicyPoller", func() {
@@ -23,17 +24,20 @@ var _ = Describe("PolicyPoller", func() {
 		{
 		   "instance_min_count":1,
 		   "instance_max_count":5,
-		   "scaling_rules":[
-		      {
-		         "metric_type":"test-metric-name",
-		         "stat_window_secs":300,
-		         "breach_duration_secs":300,
-		         "threshold":30,
-		         "operator":"<",
-		         "cool_down_secs":300,
-		         "adjustment":"-1"
-		      }
-		   ]
+		   "scaling_rules":
+		   {
+				"standard_metrics": [
+					{
+					"metric_type":"test-metric-name",
+					"stat_window_secs":300,
+					"breach_duration_secs":300,
+					"threshold":30,
+					"operator":"<",
+					"cool_down_secs":300,
+					"adjustment":"-1"
+					}
+				]
+		   }
 		}`
 	)
 
@@ -84,15 +88,18 @@ var _ = Describe("PolicyPoller", func() {
 						ScalingPolicy: &models.ScalingPolicy{
 							InstanceMax: 5,
 							InstanceMin: 1,
-							ScalingRules: []*models.ScalingRule{{
-								MetricType:            "test-metric-name",
-								StatWindowSeconds:     300,
-								BreachDurationSeconds: 300,
-								CoolDownSeconds:       300,
-								Threshold:             30,
-								Operator:              "<",
-								Adjustment:            "-1",
-							}}},
+							ScalingRules: models.ScalingRule{
+								StandardMetrics: []*models.MetricPolicy{{
+									MetricType:            "test-metric-name",
+									StatWindowSeconds:     300,
+									BreachDurationSeconds: 300,
+									CoolDownSeconds:       300,
+									Threshold:             30,
+									Operator:              "<",
+									Adjustment:            "-1",
+								}},
+							},
+						},
 					}))
 				})
 			})

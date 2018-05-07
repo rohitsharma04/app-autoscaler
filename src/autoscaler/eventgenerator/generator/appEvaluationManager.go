@@ -52,7 +52,7 @@ func (a *AppEvaluationManager) getTriggers(policyMap map[string]*models.AppPolic
 	triggersByType := make(map[string][]*models.Trigger)
 	now := a.emClock.Now().UnixNano()
 	for appId, policy := range policyMap {
-		for _, rule := range policy.ScalingPolicy.ScalingRules {
+		for _, rule := range policy.ScalingPolicy.ScalingRules.StandardMetrics {
 			cooldownExpiredAt, found := a.cooldownExpired[appId]
 			if found {
 				if cooldownExpiredAt > now {
@@ -75,6 +75,24 @@ func (a *AppEvaluationManager) getTriggers(policyMap map[string]*models.AppPolic
 			})
 			triggersByType[triggerKey] = triggers
 		}
+		for _, rule := range policy.ScalingPolicy.ScalingRules.CustomMetrics {
+			triggerKey := appId + "#" + rule.MetricType
+			triggers, exist := triggersByType[triggerKey]
+			if !exist {
+				triggers = []*models.Trigger{}
+			}
+			triggers = append(triggers, &models.Trigger{
+				AppId:                 appId,
+				MetricType:            rule.MetricType,
+				BreachDurationSeconds: rule.BreachDurationSeconds,
+				CoolDownSeconds:       rule.CoolDownSeconds,
+				Threshold:             rule.Threshold,
+				Operator:              rule.Operator,
+				Adjustment:            rule.Adjustment,
+			})
+			triggersByType[triggerKey] = triggers
+		}
+
 	}
 	return triggersByType
 }
