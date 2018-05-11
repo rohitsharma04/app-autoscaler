@@ -37,6 +37,20 @@ type FakeNoaaConsumer struct {
 		result1 <-chan *events.Envelope
 		result2 <-chan error
 	}
+	FirehoseStub        func(subscriptionId string, authToken string) (outputChan <-chan *events.Envelope, errorChan <-chan error)
+	firehoseMutex       sync.RWMutex
+	firehoseArgsForCall []struct {
+		subscriptionId string
+		authToken      string
+	}
+	firehoseReturns struct {
+		result1 <-chan *events.Envelope
+		result2 <-chan error
+	}
+	firehoseReturnsOnCall map[int]struct {
+		result1 <-chan *events.Envelope
+		result2 <-chan error
+	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
@@ -154,6 +168,58 @@ func (fake *FakeNoaaConsumer) StreamReturnsOnCall(i int, result1 <-chan *events.
 	}{result1, result2}
 }
 
+func (fake *FakeNoaaConsumer) Firehose(subscriptionId string, authToken string) (outputChan <-chan *events.Envelope, errorChan <-chan error) {
+	fake.firehoseMutex.Lock()
+	ret, specificReturn := fake.firehoseReturnsOnCall[len(fake.firehoseArgsForCall)]
+	fake.firehoseArgsForCall = append(fake.firehoseArgsForCall, struct {
+		subscriptionId string
+		authToken      string
+	}{subscriptionId, authToken})
+	fake.recordInvocation("Firehose", []interface{}{subscriptionId, authToken})
+	fake.firehoseMutex.Unlock()
+	if fake.FirehoseStub != nil {
+		return fake.FirehoseStub(subscriptionId, authToken)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.firehoseReturns.result1, fake.firehoseReturns.result2
+}
+
+func (fake *FakeNoaaConsumer) FirehoseCallCount() int {
+	fake.firehoseMutex.RLock()
+	defer fake.firehoseMutex.RUnlock()
+	return len(fake.firehoseArgsForCall)
+}
+
+func (fake *FakeNoaaConsumer) FirehoseArgsForCall(i int) (string, string) {
+	fake.firehoseMutex.RLock()
+	defer fake.firehoseMutex.RUnlock()
+	return fake.firehoseArgsForCall[i].subscriptionId, fake.firehoseArgsForCall[i].authToken
+}
+
+func (fake *FakeNoaaConsumer) FirehoseReturns(result1 <-chan *events.Envelope, result2 <-chan error) {
+	fake.FirehoseStub = nil
+	fake.firehoseReturns = struct {
+		result1 <-chan *events.Envelope
+		result2 <-chan error
+	}{result1, result2}
+}
+
+func (fake *FakeNoaaConsumer) FirehoseReturnsOnCall(i int, result1 <-chan *events.Envelope, result2 <-chan error) {
+	fake.FirehoseStub = nil
+	if fake.firehoseReturnsOnCall == nil {
+		fake.firehoseReturnsOnCall = make(map[int]struct {
+			result1 <-chan *events.Envelope
+			result2 <-chan error
+		})
+	}
+	fake.firehoseReturnsOnCall[i] = struct {
+		result1 <-chan *events.Envelope
+		result2 <-chan error
+	}{result1, result2}
+}
+
 func (fake *FakeNoaaConsumer) Close() error {
 	fake.closeMutex.Lock()
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
@@ -201,6 +267,8 @@ func (fake *FakeNoaaConsumer) Invocations() map[string][][]interface{} {
 	defer fake.containerEnvelopesMutex.RUnlock()
 	fake.streamMutex.RLock()
 	defer fake.streamMutex.RUnlock()
+	fake.firehoseMutex.RLock()
+	defer fake.firehoseMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

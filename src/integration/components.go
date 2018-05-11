@@ -19,7 +19,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit/ginkgomon"
-	"gopkg.in/yaml.v2"
+        "gopkg.in/yaml.v2"
 )
 
 const (
@@ -367,10 +367,11 @@ func (components *Components) PrepareMetricsCollectorConfig(dbUri string, port i
 	refreshInterval time.Duration, saveInterval time.Duration, collectMethod string, tmpDir string, lockTTL time.Duration, lockRetryInterval time.Duration, ConsulClusterConfig string) string {
 	cfg := mcConfig.Config{
 		Cf: cf.CfConfig{
-			Api:       ccNOAAUAAUrl,
-			GrantType: cfGrantTypePassword,
-			Username:  "admin",
-			Password:  "admin",
+			Api:         ccNOAAUAAUrl,
+			GrantType:   cfGrantTypePassword,
+			Username:    "admin",
+			Password:    "admin",
+			UAAEndpoint: ccNOAAUAAUrl,
 		},
 		Server: mcConfig.ServerConfig{
 			Port: port,
@@ -480,10 +481,11 @@ func (components *Components) PrepareEventGeneratorConfig(dbUri string, enableDB
 func (components *Components) PrepareScalingEngineConfig(dbUri string, port int, ccUAAUrl string, cfGrantTypePassword string, tmpDir string, consulClusterConfig string) string {
 	conf := seConfig.Config{
 		Cf: cf.CfConfig{
-			Api:       ccUAAUrl,
-			GrantType: cfGrantTypePassword,
-			Username:  "admin",
-			Password:  "admin",
+			Api:         ccUAAUrl,
+			GrantType:   cfGrantTypePassword,
+			Username:    "admin",
+			Password:    "admin",
+			UAAEndpoint: ccUAAUrl,
 		},
 		Server: seConfig.ServerConfig{
 			Port: port,

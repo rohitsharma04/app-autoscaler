@@ -87,9 +87,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("should scale out", func() {
 						Eventually(func() int {
@@ -136,9 +138,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("shouldn't scale out", func() {
 						Consistently(func() int {
@@ -188,9 +192,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("should scale in", func() {
 						Eventually(func() int {
@@ -238,9 +244,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("shouldn't scale in", func() {
 						Consistently(func() int {
@@ -297,9 +305,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("should scale out", func() {
 						Eventually(func() int {
@@ -346,9 +356,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("shouldn't scale out", func() {
 						Consistently(func() int {
@@ -398,9 +410,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("should scale in", func() {
 						Eventually(func() int {
@@ -448,9 +462,11 @@ var _ = Describe("Integration_Metricscollector_Eventgenerator_Scalingengine", fu
 					BeforeEach(func() {
 						fakeMetricsStreaming(testAppId, 102400000, 204800000)
 						collectMethod = config.CollectMethodStreaming
+						fakeFirehoseConsuming("test-firehose-msg")
 					})
 					AfterEach(func() {
 						closeFakeMetricsStreaming()
+						closeFakeFirehoseConsuming()
 					})
 					It("shouldn't scale in", func() {
 						Consistently(func() int {

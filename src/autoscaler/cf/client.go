@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry-incubator/uaago"
 
 	"autoscaler/models"
 )
@@ -47,6 +48,7 @@ type CfClient interface {
 	GetEndpoints() Endpoints
 	GetApp(string) (*models.AppEntity, error)
 	SetAppInstances(string, int) error
+	GetAuthToken() (string, error)
 }
 
 type cfClient struct {
@@ -62,6 +64,7 @@ type cfClient struct {
 	httpClient *http.Client
 	lock       *sync.Mutex
 	grantTime  time.Time
+	uaaClient  *uaago.Client
 }
 
 func NewCfClient(conf *CfConfig, logger lager.Logger, clk clock.Clock) CfClient {
@@ -92,7 +95,22 @@ func NewCfClient(conf *CfConfig, logger lager.Logger, clk clock.Clock) CfClient 
 
 	c.lock = &sync.Mutex{}
 
+	uaaClient, err := uaago.NewClient(conf.UAAEndpoint)
+	if err != nil {
+		c.logger.Error("Failed to create uaago client:", err)
+	}
+	c.uaaClient = uaaClient
+
 	return c
+}
+
+func (c *cfClient) GetAuthToken() (string, error) {
+	authToken, err := c.uaaClient.GetAuthToken(c.conf.ClientId, c.conf.Secret, true)
+	if err != nil {
+		c.logger.Error("Error getting oauth token: %s. Please check your username and password", err)
+		return "", err
+	}
+	return authToken, nil
 }
 
 func (c *cfClient) retrieveEndpoints() error {

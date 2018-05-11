@@ -46,14 +46,7 @@ func (a *Aggregator) getAppMonitors(policyMap map[string]*models.AppPolicy) []*m
 	}
 	appMonitors := make([]*models.AppMonitor, 0, len(policyMap))
 	for appId, appPolicy := range policyMap {
-		for _, rule := range appPolicy.ScalingPolicy.ScalingRules.StandardMetrics {
-			appMonitors = append(appMonitors, &models.AppMonitor{
-				AppId:      appId,
-				MetricType: rule.MetricType,
-				StatWindow: rule.StatWindow(a.defaultStatWindowSecs),
-			})
-		}
-		for _, rule := range appPolicy.ScalingPolicy.ScalingRules.CustomMetrics {
+		for _, rule := range appPolicy.ScalingPolicy.ScalingRules {
 			appMonitors = append(appMonitors, &models.AppMonitor{
 				AppId:      appId,
 				MetricType: rule.MetricType,

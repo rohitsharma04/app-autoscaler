@@ -34,8 +34,8 @@ var _ = Describe("Aggregator", func() {
 				ScalingPolicy: &models.ScalingPolicy{
 					InstanceMax: 5,
 					InstanceMin: 1,
-					ScalingRules: models.ScalingRule{
-						StandardMetrics: []*models.MetricPolicy{{
+					ScalingRules: []*models.ScalingRule{
+						{
 							MetricType:            testMetricType,
 							StatWindowSeconds:     300,
 							BreachDurationSeconds: 300,
@@ -43,7 +43,7 @@ var _ = Describe("Aggregator", func() {
 							Threshold:             30,
 							Operator:              "<",
 							Adjustment:            "-1",
-						}},
+						},
 					},
 				},
 			},

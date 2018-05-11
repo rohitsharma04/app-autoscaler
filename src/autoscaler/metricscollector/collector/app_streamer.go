@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
-	"github.com/cloudfoundry-incubator/uaago"
 	"github.com/cloudfoundry/sonde-go/events"
 
 	"fmt"
@@ -24,14 +23,15 @@ type appStreamer struct {
 	sclock          clock.Clock
 	numRequests     map[int32]int64
 	sumReponseTimes map[int32]int64
-	ticker          clock.Ticker
+	streamTicker    clock.Ticker
+	firehoseTicker  clock.Ticker
 	dataChan        chan *models.AppInstanceMetric
-	clientId        string
-	clientSecret    string
-	uaaEndpoint     string
 }
 
-func NewAppStreamer(logger lager.Logger, appId string, interval time.Duration, cfc cf.CfClient, clientId string, clientSecret string, uaaEndpoint string, noaaConsumer noaa.NoaaConsumer, sclock clock.Clock, dataChan chan *models.AppInstanceMetric) AppCollector {
+const autoscalerFirehoseId = "autoscalerFirhoseId"
+const autoscalerEventOrigin = "autoscaler_metrics_forwarder"
+
+func NewAppStreamer(logger lager.Logger, appId string, interval time.Duration, cfc cf.CfClient, noaaConsumer noaa.NoaaConsumer, sclock clock.Clock, dataChan chan *models.AppInstanceMetric) AppCollector {
 	return &appStreamer{
 		appId:           appId,
 		logger:          logger,
@@ -43,9 +43,6 @@ func NewAppStreamer(logger lager.Logger, appId string, interval time.Duration, c
 		numRequests:     make(map[int32]int64),
 		sumReponseTimes: make(map[int32]int64),
 		dataChan:        dataChan,
-		clientId:        clientId,
-		clientSecret:    clientSecret,
-		uaaEndpoint:     uaaEndpoint,
 	}
 }
 
@@ -62,12 +59,12 @@ func (as *appStreamer) Stop() {
 
 func (as *appStreamer) streamMetrics() {
 	eventChan, errorChan := as.noaaConsumer.Stream(as.appId, cf.TokenTypeBearer+" "+as.cfc.GetTokens().AccessToken)
-	as.ticker = as.sclock.NewTicker(as.collectInterval)
+	as.streamTicker = as.sclock.NewTicker(as.collectInterval)
 	var err error
 	for {
 		select {
 		case <-as.doneChan:
-			as.ticker.Stop()
+			as.streamTicker.Stop()
 			err := as.noaaConsumer.Close()
 			if err == nil {
 				as.logger.Info("noaa-connection-closed", lager.Data{"appid": as.appId})
@@ -83,7 +80,7 @@ func (as *appStreamer) streamMetrics() {
 		case event := <-eventChan:
 			as.processEvent(event)
 
-		case <-as.ticker.C():
+		case <-as.streamTicker.C():
 			if err != nil {
 				closeErr := as.noaaConsumer.Close()
 				if closeErr != nil {
@@ -100,23 +97,14 @@ func (as *appStreamer) streamMetrics() {
 }
 
 func (as *appStreamer) readFirehose() {
-	uaaClient, err := uaago.NewClient(as.uaaEndpoint)
-	if err != nil {
-		as.logger.Error("Error creating uaa client:", err)
-	}
-
-	var authToken string
-	authToken, err = uaaClient.GetAuthToken(as.clientId, as.clientSecret, true)
-	if err != nil {
-		as.logger.Error("Error getting oauth token: %s. Please check your username and password", err)
-	}
-	fmt.Println("AUth Token:", authToken)
-	eventChan, errorChan := as.noaaConsumer.Firehose("autoscalerFirhoseId", authToken)
-	as.ticker = as.sclock.NewTicker(as.collectInterval)
+	var err error
+	authToken, _ := as.cfc.GetAuthToken()
+	eventChan, errorChan := as.noaaConsumer.Firehose(autoscalerFirehoseId, authToken)
+	as.firehoseTicker = as.sclock.NewTicker(as.collectInterval)
 	for {
 		select {
 		case <-as.doneChan:
-			as.ticker.Stop()
+			as.firehoseTicker.Stop()
 			err := as.noaaConsumer.Close()
 			if err == nil {
 				as.logger.Info("noaa-connection-closed", lager.Data{"appid": as.appId})
@@ -134,17 +122,15 @@ func (as *appStreamer) readFirehose() {
 				as.processEvent(event)
 			}
 
-		case <-as.ticker.C():
+		case <-as.firehoseTicker.C():
 			if err != nil {
 				closeErr := as.noaaConsumer.Close()
 				if closeErr != nil {
 					as.logger.Error("close-noaa-connection", err, lager.Data{"appid": as.appId})
 				}
-				eventChan, errorChan = as.noaaConsumer.Firehose("autoscalerFirhoseId", authToken)
+				eventChan, errorChan = as.noaaConsumer.Firehose(autoscalerFirehoseId, authToken)
 				as.logger.Info("noaa-reconnected", lager.Data{"appid": as.appId})
 				err = nil
-			} else {
-				as.computeAndSaveMetrics()
 			}
 		}
 	}
@@ -175,7 +161,7 @@ func (as *appStreamer) processEvent(event *events.Envelope) {
 	} else if event.GetEventType() == events.Envelope_ValueMetric {
 		as.logger.Debug("process-event-get-value-metric-event", lager.Data{"event": event})
 		ss := event.GetValueMetric()
-		if ss != nil && event.GetOrigin() == "autoscaler_metrics_forwarder" {
+		if ss != nil && event.GetOrigin() == autoscalerEventOrigin {
 			valuemetric := noaa.GetCustomMetricFromValueMetricEvent(as.sclock.Now().UnixNano(), event)
 			as.logger.Debug("process-event-get-custom-value-metric", lager.Data{"metric": valuemetric})
 			if valuemetric != nil {

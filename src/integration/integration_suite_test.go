@@ -47,31 +47,35 @@ const (
 )
 
 var (
-	components               Components
-	tmpDir                   string
-	serviceBrokerConfPath    string
-	apiServerConfPath        string
-	schedulerConfPath        string
-	metricsCollectorConfPath string
-	eventGeneratorConfPath   string
-	scalingEngineConfPath    string
-	brokerUserName           string = "username"
-	brokerPassword           string = "password"
-	brokerAuth               string
-	dbUrl                    string
-	LOGLEVEL                 string
-	noaaPollingRegPath       = regexp.MustCompile(`^/apps/.*/containermetrics$`)
-	noaaStreamingRegPath     = regexp.MustCompile(`^/apps/.*/stream$`)
-	appSummaryRegPath        = regexp.MustCompile(`^/v2/apps/.*/summary$`)
-	appInstanceRegPath       = regexp.MustCompile(`^/v2/apps/.*$`)
-	checkUserSpaceRegPath    = regexp.MustCompile(`^/v2/users/.+/spaces.*$`)
-	dbHelper                 *sql.DB
-	fakeScheduler            *ghttp.Server
-	fakeCCNOAAUAA            *ghttp.Server
-	messagesToSend           chan []byte
-	streamingDoneChan        chan bool
-	emptyMessageChannel      chan []byte
-	testUserId               string = "testUserId"
+	components                     Components
+	tmpDir                         string
+	serviceBrokerConfPath          string
+	apiServerConfPath              string
+	schedulerConfPath              string
+	metricsCollectorConfPath       string
+	eventGeneratorConfPath         string
+	scalingEngineConfPath          string
+	brokerUserName                 string = "username"
+	brokerPassword                 string = "password"
+	brokerAuth                     string
+	dbUrl                          string
+	LOGLEVEL                       string
+	noaaPollingRegPath             = regexp.MustCompile(`^/apps/.*/containermetrics$`)
+	noaaStreamingRegPath           = regexp.MustCompile(`^/apps/.*/stream$`)
+	appSummaryRegPath              = regexp.MustCompile(`^/v2/apps/.*/summary$`)
+	appInstanceRegPath             = regexp.MustCompile(`^/v2/apps/.*$`)
+	checkUserSpaceRegPath          = regexp.MustCompile(`^/v2/users/.+/spaces.*$`)
+	noaaFirehoseRegPath            = regexp.MustCompile(`^/firehose/*`)
+	dbHelper                       *sql.DB
+	fakeScheduler                  *ghttp.Server
+	fakeCCNOAAUAA                  *ghttp.Server
+	messagesToSend                 chan []byte
+	messagesToSendForFirehose      chan []byte
+	streamingDoneChan              chan bool
+	firehoseDoneChan               chan bool
+	emptyMessageChannel            chan []byte
+	emptyMessageChannelForFirehose chan []byte
+	testUserId                     string = "testUserId"
 
 	processMap       map[string]ifrit.Process = map[string]ifrit.Process{}
 	schedulerProcess ifrit.Process
@@ -713,6 +717,39 @@ func closeFakeMetricsStreaming() {
 	close(emptyMessageChannel)
 }
 
+func fakeFirehoseConsuming(msg string) {
+	messagesToSendForFirehose = make(chan []byte, 256)
+	wsHandler := testhelpers.NewWebsocketHandler(messagesToSendForFirehose, 100*time.Millisecond)
+	fakeCCNOAAUAA.RouteToHandler("GET", "/firehose/autoscalerFirhoseId", wsHandler.ServeWebsocket)
+
+	firehoseDoneChan = make(chan bool)
+	firehoseTicker := time.NewTicker(500 * time.Millisecond)
+	go func() {
+		select {
+		case <-firehoseDoneChan:
+			firehoseTicker.Stop()
+			return
+		case <-firehoseTicker.C:
+			timestamp := time.Now().UnixNano()
+			messagesToSendForFirehose <- marshalMessage(createMessage(msg, timestamp-int64(time.Duration(breachDurationSecs)*time.Second)))
+			messagesToSendForFirehose <- marshalMessage(createMessage(msg, timestamp))
+			messagesToSendForFirehose <- marshalMessage(createMessage(msg, timestamp))
+			messagesToSendForFirehose <- marshalMessage(createMessage(msg, timestamp))
+			messagesToSendForFirehose <- marshalMessage(createMessage(msg, timestamp-int64(time.Duration(breachDurationSecs)*time.Second)))
+		}
+	}()
+
+	emptyMessageChannelForFirehose = make(chan []byte, 256)
+	emptyWsHandler := testhelpers.NewWebsocketHandler(emptyMessageChannelForFirehose, 200*time.Millisecond)
+	fakeCCNOAAUAA.RouteToHandler("GET", noaaFirehoseRegPath, emptyWsHandler.ServeWebsocket)
+}
+
+func closeFakeFirehoseConsuming() {
+	close(firehoseDoneChan)
+	close(messagesToSendForFirehose)
+	close(emptyMessageChannelForFirehose)
+}
+
 func createContainerMetric(appId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskByte uint64, memQuota uint64, diskQuota uint64, timestamp int64) *events.Envelope {
 	if timestamp == 0 {
 		timestamp = time.Now().UnixNano()
@@ -742,4 +779,29 @@ func marshalMessage(message *events.Envelope) []byte {
 	}
 
 	return data
+}
+
+func createMessage(message string, timestamp int64) *events.Envelope {
+	if timestamp == 0 {
+		timestamp = time.Now().UnixNano()
+	}
+
+	logMessage := createLogMessage(message, timestamp)
+
+	return &events.Envelope{
+		LogMessage: logMessage,
+		EventType:  events.Envelope_LogMessage.Enum(),
+		Origin:     proto.String("fake-origin-1"),
+		Timestamp:  proto.Int64(timestamp),
+	}
+}
+
+func createLogMessage(message string, timestamp int64) *events.LogMessage {
+	return &events.LogMessage{
+		Message:     []byte(message),
+		MessageType: events.LogMessage_OUT.Enum(),
+		AppId:       proto.String("my-app-guid"),
+		SourceType:  proto.String("Autoscaler"),
+		Timestamp:   proto.Int64(timestamp),
+	}
 }

@@ -71,7 +71,10 @@ var getPolicySchema = function() {
     'properties' :{
       'instance_min_count': { 'type':'integer','minimum':1 },
       'instance_max_count': { 'type':'integer','minimum':1 },
-      'scaling_rules': { '$ref':'/scaling_rules' },
+      'scaling_rules': {
+        'type':'array',
+        'items': { '$ref': '/scaling_rules' }
+      },
       'schedules': { '$ref':'/schedules' }
     },
     'required' : ['instance_min_count','instance_max_count'],
@@ -82,34 +85,14 @@ var getPolicySchema = function() {
 
 
 var getScalingRuleSchema = function() {
-  var schema = {
-    'type': 'object',
-    'id':'/scaling_rules',
-    'properties' : {
-      'standard_metrics': {
-        'type':'array',
-        'items': { '$ref': '/standard_metrics' }
-      },
-      'custom_metrics': {
-        'type':'array',
-        'items': { '$ref': '/custom_metrics' }
-      },
-    },
-    'anyOf' : [ { 'required' : ['custom_metrics'] }, { 'required' : ['standard_metrics'] }]
-  };
-  return schema;
-};
-
-
-var getStandardMetricsSchema = function() {
   var validOperators = getValidOperators();
   var adjustmentPattern = getAdjustmentPattern();
   var metricTypeEnum = getMetricTypes();
   var schema = {
     'type': 'object',
-    'id':'/standard_metrics',
+    'id':'/scaling_rules',
     'properties' : {
-      'metric_type':{ 'type':'string' ,'enum':metricTypeEnum },
+      'metric_type':{ 'type':'string'},
       'stat_window_secs':{ 'type':'number','minimum': 60,'maximum': 3600 },
       'breach_duration_secs':{ 'type':'number','minimum': 60,'maximum': 3600 },
       'threshold':{ 'type':'number'},
@@ -122,26 +105,6 @@ var getStandardMetricsSchema = function() {
   return schema;
 };
 
-var getCustomMetricsSchema = function() {
-  var validOperators = getValidOperators();
-  var adjustmentPattern = getAdjustmentPattern();
-  var metricTypeEnum = getMetricTypes();
-  var schema = {
-    'type': 'object',
-    'id':'/custom_metrics',
-    'properties' : {
-      'metric_type':{ 'type':'string'},
-      'stat_window_secs':{ 'type':'number','minimum': 60,'maximum': 3600 },
-      'breach_duration_secs':{ 'type':'number','minimum': 60,'maximum': 3600 },
-      'threshold':{ 'type':'number'},
-      'operator':{ 'type':'string','enum': validOperators },
-      'cool_down_secs':{ 'type':'number','minimum': 60,'maximum': 3600 },
-      'adjustment':{ 'type':'string','pattern': adjustmentPattern }
-    },
-    'required' : ['metric_type','threshold','operator','adjustment']
-  };
-  return schema;
-};
 
 var getScheduleSchema = function() {
   var schema = {
@@ -216,8 +179,6 @@ var initSchema = function() {
   validator.addSchema(getRecurringSchema(),'/recurring_schedule');
   validator.addSchema(getScheduleSchema(),'/schedules');
   validator.addSchema(getScalingRuleSchema(),'/scaling_rules');
-  validator.addSchema(getCustomMetricsSchema(),'/custom_metrics');
-  validator.addSchema(getStandardMetricsSchema(),'/standard_metrics');
   return getPolicySchema();
 }
 

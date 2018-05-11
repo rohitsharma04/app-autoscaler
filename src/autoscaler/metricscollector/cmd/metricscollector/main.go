@@ -100,7 +100,7 @@ func main() {
 		createAppCollector = func(appId string, dataChan chan *models.AppInstanceMetric) collector.AppCollector {
 			noaaConsumer := consumer.New(dopplerUrl, tlsConfig, nil)
 			noaaConsumer.RefreshTokenFrom(cfClient)
-			return collector.NewAppStreamer(logger.Session("app-streamer"), appId, conf.Collector.CollectInterval, cfClient, conf.Cf.ClientId, conf.Cf.Secret, conf.Cf.UAAEndpoint, noaaConsumer, mcClock, dataChan)
+			return collector.NewAppStreamer(logger.Session("app-streamer"), appId, conf.Collector.CollectInterval, cfClient, noaaConsumer, mcClock, dataChan)
 		}
 	}
 

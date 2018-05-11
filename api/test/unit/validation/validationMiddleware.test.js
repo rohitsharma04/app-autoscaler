@@ -377,22 +377,6 @@ describe('Validate Policy JSON Schema structure', function () {
           });
         });
 
-        it('failed with invalid metric type. policy type ' + type, function (done) {
-          buildTestPolicy(fakePolicy, type);
-          fakePolicy.scaling_rules[0].metric_type = 'invalid';
-          request(app)
-            .put('/v1/apps/fakeID/policy', validationMiddleware)
-            .send(fakePolicy)
-            .end(function (error, result) {
-              expect(result.statusCode).to.equal(400);
-              expect(result.body.error).to.not.be.null;
-              expect(result.body.error[0].property).to.equal('instance.scaling_rules[0].metric_type');
-              expect(result.body.error[0].message).to.equal('is not one of enum values: memoryused,memoryutil,responsetime,throughput');
-              expect(result.body.error[0].stack).to.equal('instance.scaling_rules[0].metric_type is not one of enum values: memoryused,memoryutil,responsetime,throughput');
-              done();
-            });
-        });
-
         invalidMetricThresholdSettings.forEach(function (setting) {
           var metricType = setting.metric_type;
           setting.thresholds.forEach(function (threshold) {

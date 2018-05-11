@@ -6,6 +6,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +17,8 @@ import (
 
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
+	"github.com/cloudfoundry/noaa/test_helpers"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/gogo/protobuf/proto"
 	. "github.com/onsi/ginkgo"
@@ -34,16 +37,19 @@ import (
 )
 
 var (
-	mcPath         string
-	cfg            config.Config
-	mcPort         int
-	configFile     *os.File
-	ccNOAAUAA      *ghttp.Server
-	messagesToSend chan []byte
-	isTokenExpired bool
-	eLock          *sync.Mutex
-	httpClient     *http.Client
-	consulRunner   *consulrunner.ClusterRunner
+	mcPath               string
+	cfg                  config.Config
+	mcPort               int
+	configFile           *os.File
+	ccNOAAUAA            *ghttp.Server
+	messagesToSend       chan []byte
+	isTokenExpired       bool
+	eLock                *sync.Mutex
+	httpClient           *http.Client
+	consulRunner         *consulrunner.ClusterRunner
+	trafficControllerURL string
+	testServer           *httptest.Server
+	fakeHandler          *test_helpers.FakeHandler
 )
 
 func TestMetricsCollector(t *testing.T) {
@@ -126,6 +132,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	wsHandler := testhelpers.NewWebsocketHandler(messagesToSend, 100*time.Millisecond)
 	ccNOAAUAA.RouteToHandler("GET", "/apps/an-app-id/stream", wsHandler.ServeWebsocket)
 
+	ccNOAAUAA.RouteToHandler("GET", "/firehose/autoscalerFirhoseId", wsHandler.ServeWebsocket)
+
 	consulRunner = consulrunner.NewClusterRunner(
 		consulrunner.ClusterRunnerConfig{
 			StartingPort: 9001 + GinkgoParallelNode()*consulrunner.PortOffsetLength,
@@ -137,10 +145,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	consulRunner.WaitUntilReady()
 
 	cfg.Cf = cf.CfConfig{
-		Api:       ccNOAAUAA.URL(),
-		GrantType: cf.GrantTypePassword,
-		Username:  "admin",
-		Password:  "admin",
+		Api:         ccNOAAUAA.URL(),
+		GrantType:   cf.GrantTypePassword,
+		Username:    "admin",
+		Password:    "admin",
+		UAAEndpoint: ccNOAAUAA.URL(),
 	}
 
 	testCertDir := "../../../../../test-certs"
