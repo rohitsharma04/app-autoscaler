@@ -64,7 +64,6 @@ describe('Validating Policy JSON schema construction',function(){
     var schema = schemaValidatorPrivate.__get__('getScalingRuleSchema')();
     var validOperator = schemaValidatorPrivate.__get__('getValidOperators')();
     var adjustmentPattern = schemaValidatorPrivate.__get__('getAdjustmentPattern')();
-    var metricTypeEnum = schemaValidatorPrivate.__get__('getMetricTypes')();
     expect(schema.id).to.equal('/scaling_rules');
     expect(schema.properties.metric_type).to.deep.equal({ 'type':'string'});
     expect(schema.properties.stat_window_secs).to.deep.equal({ 'type':'number','minimum': 60,'maximum': 3600 });
@@ -158,6 +157,13 @@ describe('Validating policy JSON schema against sample policy',function(){
     expect(validator.validate(scaling_rules_schema,fakePolicy.scaling_rules[0])).to.be.false;
   });
 
+
+  it('should validate scaling_rules with custom metrics',function(){
+    expect(validator.validate(scaling_rules_schema,fakePolicy.scaling_rules[0])).to.be.true;
+    fakePolicy.scaling_rules[0].metric_type = 'queueLength'
+    expect(validator.validate(scaling_rules_schema,fakePolicy.scaling_rules[0])).to.be.true;
+  })
+
   it('should validate specific_date schedules',function() {
     expect(validator.validate(specific_date_schema,fakePolicy.schedules.specific_date[0])).to.be.true;
     fakePolicy.schedules.specific_date[0].start_date_time = '2015-15-04T20:00';
@@ -177,4 +183,5 @@ describe('Validating policy JSON schema against sample policy',function(){
     fakePolicy.schedules.recurring_schedule[0].start_time = '24:12';
     expect(validator.validate(recurring_schedule_schema,fakePolicy.schedules.recurring_schedule[0])).to.be.false;
   });
+
 });

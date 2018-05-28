@@ -75,7 +75,7 @@ func (as *appStreamer) streamMetrics() {
 			return
 
 		case err = <-errorChan:
-			as.logger.Error("stream-metrics", err, lager.Data{"appid": as.appId})
+			as.logger.Error("error-stream-metrics", err, lager.Data{"appid": as.appId})
 
 		case event := <-eventChan:
 			as.processEvent(event)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"autoscaler/db"
 	"autoscaler/metricsforwarder/config"
 	"autoscaler/metricsforwarder/forwarder"
 	"autoscaler/routes"
@@ -22,15 +23,15 @@ func (vh VarsFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	vh(w, r, vars)
 }
 
-func NewServer(logger lager.Logger, conf *config.Config) (ifrit.Runner, error) {
+func NewServer(logger lager.Logger, conf *config.Config, policyDB db.PolicyDB) (ifrit.Runner, error) {
 
-	metricForwarder, err := forwarder.NewMetricForwarder(conf)
+	metricForwarder, err := forwarder.NewMetricForwarder(logger, conf)
 	if err != nil {
-		fmt.Println("failed to create metricforwarder", err)
+		fmt.Println("failed-to-create-metricforwarder-server", err)
 		os.Exit(1)
 	}
 
-	mh := NewCustomMetricsHandler(metricForwarder)
+	mh := NewCustomMetricsHandler(logger, metricForwarder, policyDB)
 
 	r := routes.MetricsForwarderRoutes()
 	r.Get(routes.PostCustomMetricsRouteName).Handler(VarsFunc(mh.PublishMetrics))
@@ -40,6 +41,6 @@ func NewServer(logger lager.Logger, conf *config.Config) (ifrit.Runner, error) {
 	var runner ifrit.Runner
 	runner = http_server.New(addr, r)
 
-	logger.Info("http-server-created", lager.Data{"config": conf})
+	logger.Info("metrics-forwarder-http-server-created", lager.Data{"config": conf})
 	return runner, nil
 }

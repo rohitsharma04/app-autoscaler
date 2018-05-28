@@ -43,6 +43,19 @@ type FakePolicyDB struct {
 		result1 []*models.PolicyJson
 		result2 error
 	}
+	GetCustomMetricsCredsStub        func(bindingId string) (string, error)
+	getCustomMetricsCredsMutex       sync.RWMutex
+	getCustomMetricsCredsArgsForCall []struct {
+		bindingId string
+	}
+	getCustomMetricsCredsReturns struct {
+		result1 string
+		result2 error
+	}
+	getCustomMetricsCredsReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
@@ -193,6 +206,57 @@ func (fake *FakePolicyDB) RetrievePoliciesReturnsOnCall(i int, result1 []*models
 	}{result1, result2}
 }
 
+func (fake *FakePolicyDB) GetCustomMetricsCreds(bindingId string) (string, error) {
+	fake.getCustomMetricsCredsMutex.Lock()
+	ret, specificReturn := fake.getCustomMetricsCredsReturnsOnCall[len(fake.getCustomMetricsCredsArgsForCall)]
+	fake.getCustomMetricsCredsArgsForCall = append(fake.getCustomMetricsCredsArgsForCall, struct {
+		bindingId string
+	}{bindingId})
+	fake.recordInvocation("GetCustomMetricsCreds", []interface{}{bindingId})
+	fake.getCustomMetricsCredsMutex.Unlock()
+	if fake.GetCustomMetricsCredsStub != nil {
+		return fake.GetCustomMetricsCredsStub(bindingId)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getCustomMetricsCredsReturns.result1, fake.getCustomMetricsCredsReturns.result2
+}
+
+func (fake *FakePolicyDB) GetCustomMetricsCredsCallCount() int {
+	fake.getCustomMetricsCredsMutex.RLock()
+	defer fake.getCustomMetricsCredsMutex.RUnlock()
+	return len(fake.getCustomMetricsCredsArgsForCall)
+}
+
+func (fake *FakePolicyDB) GetCustomMetricsCredsArgsForCall(i int) string {
+	fake.getCustomMetricsCredsMutex.RLock()
+	defer fake.getCustomMetricsCredsMutex.RUnlock()
+	return fake.getCustomMetricsCredsArgsForCall[i].bindingId
+}
+
+func (fake *FakePolicyDB) GetCustomMetricsCredsReturns(result1 string, result2 error) {
+	fake.GetCustomMetricsCredsStub = nil
+	fake.getCustomMetricsCredsReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePolicyDB) GetCustomMetricsCredsReturnsOnCall(i int, result1 string, result2 error) {
+	fake.GetCustomMetricsCredsStub = nil
+	if fake.getCustomMetricsCredsReturnsOnCall == nil {
+		fake.getCustomMetricsCredsReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.getCustomMetricsCredsReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakePolicyDB) Close() error {
 	fake.closeMutex.Lock()
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
@@ -242,6 +306,8 @@ func (fake *FakePolicyDB) Invocations() map[string][][]interface{} {
 	defer fake.getAppPolicyMutex.RUnlock()
 	fake.retrievePoliciesMutex.RLock()
 	defer fake.retrievePoliciesMutex.RUnlock()
+	fake.getCustomMetricsCredsMutex.RLock()
+	defer fake.getCustomMetricsCredsMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

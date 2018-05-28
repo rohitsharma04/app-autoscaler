@@ -1,6 +1,8 @@
 package main
 
 import (
+	"autoscaler/db"
+	"autoscaler/db/sqldb"
 	helpers "autoscaler/helpers"
 	"autoscaler/metricsforwarder/config"
 	"autoscaler/metricsforwarder/server"
@@ -37,16 +39,30 @@ func main() {
 	}
 	configFile.Close()
 
+	err = conf.Validate()
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "failed to validate configuration : %s\n", err.Error())
+		os.Exit(1)
+	}
+
 	logger := initLoggerFromConfig(conf.LogLevel)
 
-	httpServer, err := server.NewServer(logger.Session("http_server"), conf)
+	var policyDB db.PolicyDB
+	policyDB, err = sqldb.NewPolicySQLDB(conf.Db.PolicyDb, logger.Session("policy-db"))
 	if err != nil {
-		logger.Error("failed to create http server", err)
+		logger.Error("failed-to-connect-policy-database", err, lager.Data{"dbConfig": conf.Db.PolicyDb})
+		os.Exit(1)
+	}
+	defer policyDB.Close()
+
+	httpServer, err := server.NewServer(logger.Session("custom_metrics_server"), conf, policyDB)
+	if err != nil {
+		logger.Error("failed-to-create-custommetrics-server", err)
 		os.Exit(1)
 	}
 
 	members := grouper.Members{
-		{"http_server", httpServer},
+		{"custom_metrics_server", httpServer},
 	}
 
 	monitor := ifrit.Invoke(sigmon.New(grouper.NewOrdered(os.Interrupt, members)))
@@ -73,7 +89,7 @@ func initLoggerFromConfig(logLevelConfig string) lager.Logger {
 
 	redactedSink, err := helpers.NewRedactingWriterWithURLCredSink(os.Stdout, logLevel, keyPatterns, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create redacted sink", err.Error())
+		fmt.Fprintf(os.Stderr, "failed to create redacted sink", err.Error())
 	}
 	logger.RegisterSink(redactedSink)
 

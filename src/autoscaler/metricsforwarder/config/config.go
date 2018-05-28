@@ -1,6 +1,8 @@
 package config
 
 import (
+	"autoscaler/db"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -12,12 +14,17 @@ type Config struct {
 	LogLevel          string            `yaml:"log_level"`
 	MetronAddress     string            `yaml:"metron_address"`
 	LoggregatorConfig LoggregatorConfig `yaml:"loggregator"`
+	Db                DbConfig          `yaml:"db"`
 }
 
 type LoggregatorConfig struct {
 	CACertFile     string `yaml:"ca_cert"`
 	ClientCertFile string `yaml:"client_cert"`
 	ClientKeyFile  string `yaml:"client_key"`
+}
+
+type DbConfig struct {
+	PolicyDb db.DatabaseConfig `yaml:"policy_db"`
 }
 
 const (
@@ -44,4 +51,14 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 	}
 
 	return conf, nil
+}
+
+func (c *Config) Validate() error {
+
+	if c.Db.PolicyDb.Url == "" {
+		return fmt.Errorf("Configuration error: Policy DB url is empty")
+	}
+
+	return nil
+
 }

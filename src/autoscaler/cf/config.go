@@ -56,5 +56,27 @@ func (conf *CfConfig) Validate() error {
 			return fmt.Errorf("Configuration error: client id is empty")
 		}
 	}
+
+	if conf.UAAEndpoint != "" {
+		uaaEndpointUrl, err := url.Parse(conf.UAAEndpoint)
+		if err != nil {
+			return fmt.Errorf("Configuration error: uaa endpoint is not a valid url")
+		}
+
+		if uaaEndpointUrl.Scheme == "" {
+			return fmt.Errorf("Configuration error: uaa endpoint scheme is empty")
+		}
+
+		scheme = strings.ToLower(uaaEndpointUrl.Scheme)
+		if (scheme != "http") && (scheme != "https") {
+			return fmt.Errorf("Configuration error: uaa endpoint scheme is invalid")
+		}
+
+		if strings.HasSuffix(uaaEndpointUrl.Path, "/") {
+			uaaEndpointUrl.Path = strings.TrimSuffix(uaaEndpointUrl.Path, "/")
+		}
+		conf.UAAEndpoint = uaaEndpointUrl.String()
+	}
+
 	return nil
 }

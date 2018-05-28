@@ -22,6 +22,7 @@ var _ = Describe("Config", func() {
 			conf.Username = "admin"
 			conf.ClientId = "admin"
 			conf.SkipSSLValidation = false
+			conf.UAAEndpoint = "http://uaa.example.com"
 		})
 
 		JustBeforeEach(func() {
@@ -86,6 +87,56 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("when api is valid but ends with a '/'", func() {
+			BeforeEach(func() {
+				conf.Api = "https://a.com/"
+			})
+
+			It("should not error and remove the '/'", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(conf.Api).To(Equal("https://a.com"))
+			})
+		})
+		Context("when uaa endpoint is not set", func() {
+			BeforeEach(func() {
+				conf.UAAEndpoint = ""
+			})
+
+			It("should error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when uaa endpoint is not a url", func() {
+			BeforeEach(func() {
+				conf.UAAEndpoint = "http://a.com%"
+			})
+
+			It("should error", func() {
+				Expect(err).To(MatchError("Configuration error: uaa endpoint is not a valid url"))
+			})
+		})
+
+		Context("when uaa endpoint scheme is empty", func() {
+			BeforeEach(func() {
+				conf.UAAEndpoint = "a.com"
+			})
+
+			It("should error", func() {
+				Expect(err).To(MatchError("Configuration error: uaa endpoint scheme is empty"))
+			})
+		})
+
+		Context("when uaa endpoint has invalid scheme", func() {
+			BeforeEach(func() {
+				conf.UAAEndpoint = "badscheme://a.com"
+			})
+
+			It("should error", func() {
+				Expect(err).To(MatchError("Configuration error: uaa endpoint scheme is invalid"))
+			})
+		})
+
+		Context("when uaa endpoint is valid but ends with a '/'", func() {
 			BeforeEach(func() {
 				conf.Api = "https://a.com/"
 			})

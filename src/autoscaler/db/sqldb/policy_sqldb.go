@@ -1,9 +1,10 @@
 package sqldb
 
 import (
-	"code.cloudfoundry.org/lager"
 	"database/sql"
 	"encoding/json"
+
+	"code.cloudfoundry.org/lager"
 	_ "github.com/lib/pq"
 
 	"autoscaler/db"
@@ -121,4 +122,16 @@ func (pdb *PolicySQLDB) GetAppPolicy(appId string) (*models.ScalingPolicy, error
 		return nil, err
 	}
 	return scalingPolicy, nil
+}
+
+func (pdb *PolicySQLDB) GetCustomMetricsCreds(username string) (string, error) {
+	var password string
+	query := "SELECT password from credentials WHERE username = $1"
+	err := pdb.sqldb.QueryRow(query, username).Scan(&password)
+
+	if err != nil {
+		pdb.logger.Error("get-custom-metrics-creds-from-credentials-table", err, lager.Data{"query": query})
+		return "", err
+	}
+	return password, nil
 }
