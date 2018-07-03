@@ -20,6 +20,10 @@ mv -f ${depot_path}/autoscalerCA.key ${depot_path}/autoscaler-ca.key
 certstrap --depot-path ${depot_path} request-cert --passphrase '' --common-name metricscollector --ip 127.0.0.1
 certstrap --depot-path ${depot_path} sign metricscollector --CA autoscaler-ca
 
+# metricsforwarder certificate
+certstrap --depot-path ${depot_path} request-cert --passphrase '' --common-name metricsforwarder --ip 127.0.0.1
+certstrap --depot-path ${depot_path} sign metricsforwarder --CA autoscaler-ca
+
 # scalingengine certificate
 certstrap --depot-path ${depot_path} request-cert --passphrase '' --common-name scalingengine --ip 127.0.0.1
 certstrap --depot-path ${depot_path} sign scalingengine --CA autoscaler-ca
