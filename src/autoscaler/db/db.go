@@ -37,6 +37,7 @@ type PolicyDB interface {
 	GetAppPolicy(appId string) (*models.ScalingPolicy, error)
 	RetrievePolicies() ([]*models.PolicyJson, error)
 	GetCustomMetricsCreds(bindingId string) (string, error)
+	ValidateCustomMetricsCreds(username string, password string) bool
 	Close() error
 }
 

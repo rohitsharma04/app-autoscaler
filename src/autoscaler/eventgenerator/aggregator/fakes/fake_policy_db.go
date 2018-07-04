@@ -56,6 +56,18 @@ type FakePolicyDB struct {
 		result1 string
 		result2 error
 	}
+	ValidateCustomMetricsCredsStub        func(username string, password string) bool
+	validateCustomMetricsCredsMutex       sync.RWMutex
+	validateCustomMetricsCredsArgsForCall []struct {
+		username string
+		password string
+	}
+	validateCustomMetricsCredsReturns struct {
+		result1 bool
+	}
+	validateCustomMetricsCredsReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	CloseStub        func() error
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
@@ -257,6 +269,55 @@ func (fake *FakePolicyDB) GetCustomMetricsCredsReturnsOnCall(i int, result1 stri
 	}{result1, result2}
 }
 
+func (fake *FakePolicyDB) ValidateCustomMetricsCreds(username string, password string) bool {
+	fake.validateCustomMetricsCredsMutex.Lock()
+	ret, specificReturn := fake.validateCustomMetricsCredsReturnsOnCall[len(fake.validateCustomMetricsCredsArgsForCall)]
+	fake.validateCustomMetricsCredsArgsForCall = append(fake.validateCustomMetricsCredsArgsForCall, struct {
+		username string
+		password string
+	}{username, password})
+	fake.recordInvocation("ValidateCustomMetricsCreds", []interface{}{username, password})
+	fake.validateCustomMetricsCredsMutex.Unlock()
+	if fake.ValidateCustomMetricsCredsStub != nil {
+		return fake.ValidateCustomMetricsCredsStub(username, password)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.validateCustomMetricsCredsReturns.result1
+}
+
+func (fake *FakePolicyDB) ValidateCustomMetricsCredsCallCount() int {
+	fake.validateCustomMetricsCredsMutex.RLock()
+	defer fake.validateCustomMetricsCredsMutex.RUnlock()
+	return len(fake.validateCustomMetricsCredsArgsForCall)
+}
+
+func (fake *FakePolicyDB) ValidateCustomMetricsCredsArgsForCall(i int) (string, string) {
+	fake.validateCustomMetricsCredsMutex.RLock()
+	defer fake.validateCustomMetricsCredsMutex.RUnlock()
+	return fake.validateCustomMetricsCredsArgsForCall[i].username, fake.validateCustomMetricsCredsArgsForCall[i].password
+}
+
+func (fake *FakePolicyDB) ValidateCustomMetricsCredsReturns(result1 bool) {
+	fake.ValidateCustomMetricsCredsStub = nil
+	fake.validateCustomMetricsCredsReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakePolicyDB) ValidateCustomMetricsCredsReturnsOnCall(i int, result1 bool) {
+	fake.ValidateCustomMetricsCredsStub = nil
+	if fake.validateCustomMetricsCredsReturnsOnCall == nil {
+		fake.validateCustomMetricsCredsReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.validateCustomMetricsCredsReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakePolicyDB) Close() error {
 	fake.closeMutex.Lock()
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
@@ -308,6 +369,8 @@ func (fake *FakePolicyDB) Invocations() map[string][][]interface{} {
 	defer fake.retrievePoliciesMutex.RUnlock()
 	fake.getCustomMetricsCredsMutex.RLock()
 	defer fake.getCustomMetricsCredsMutex.RUnlock()
+	fake.validateCustomMetricsCredsMutex.RLock()
+	defer fake.validateCustomMetricsCredsMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

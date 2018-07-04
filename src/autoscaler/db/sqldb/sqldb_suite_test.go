@@ -198,6 +198,31 @@ func insertSchedulerActiveSchedule(id int, appId string, startJobIdentifier int,
 	return e
 }
 
+func insertCustomMetricsBindingCredentials(username string, password string) error {
+
+	//Inserting into all dependent tables
+	var err error
+	var query string
+	query = "INSERT INTO service_instance(service_instance_id,org_id,space_id) values($1,$2,$3)"
+	_, err = dbHelper.Exec(query, "8657d0e7-748b-4ce5-9c4f-7dd466949035", "63f756cc-99fc-45de-9f4b-5fd377d07e47", "60b9c832-42f1-4c76-be98-7e104edaa1ab")
+
+	query = "INSERT INTO binding(binding_id,service_instance_id,app_id,created_at) values($1,$2,$3,$4)"
+	_, err = dbHelper.Exec(query, "9cffa47b-fca9-49df-af67-576fa1c949b6", "8657d0e7-748b-4ce5-9c4f-7dd466949035", "affcdc4e-abbe-4011-a30a-62a43aa00e2f", "2011-05-18 15:36:38")
+
+	query = "INSERT INTO credentials(binding_id, username, password) values($1, $2, $3)"
+	_, err = dbHelper.Exec(query, "9cffa47b-fca9-49df-af67-576fa1c949b6", username, password)
+	return err
+
+}
+
+func cleanCredentialsTable() error {
+	_, err := dbHelper.Exec("DELETE FROM credentials")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func insertLockDetails(lock *models.Lock) (sql.Result, error) {
 	query := "INSERT INTO mc_lock (owner,lock_timestamp,ttl) VALUES ($1,$2,$3)"
 	result, err := dbHelper.Exec(query, lock.Owner, lock.LastModifiedTimestamp, int64(lock.Ttl/time.Second))

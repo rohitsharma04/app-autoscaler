@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"code.cloudfoundry.org/lager"
 	_ "github.com/lib/pq"
 
@@ -134,4 +136,18 @@ func (pdb *PolicySQLDB) GetCustomMetricsCreds(username string) (string, error) {
 		return "", err
 	}
 	return password, nil
+}
+
+func (pdb *PolicySQLDB) ValidateCustomMetricsCreds(username, password string) bool {
+	encryptedPassword, err := pdb.GetCustomMetricsCreds(username)
+	if err != nil {
+		pdb.logger.Error("error-during-getting-binding-credentials", err)
+		return false
+	}
+	isAuthenticated := bcrypt.CompareHashAndPassword([]byte(encryptedPassword), []byte(password))
+	if isAuthenticated == nil { // password matching successfull
+		return true
+	}
+	pdb.logger.Debug("failed-to-authorize-credentials")
+	return false
 }

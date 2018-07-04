@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/crypto/bcrypt"
 
 	"encoding/json"
 	"os"
@@ -17,16 +18,19 @@ import (
 
 var _ = Describe("PolicySQLDB", func() {
 	var (
-		pdb            *PolicySQLDB
-		dbConfig       db.DatabaseConfig
-		logger         lager.Logger
-		err            error
-		appIds         map[string]bool
-		scalingPolicy  *models.ScalingPolicy
-		policyJson     []byte
-		appId          string
-		policies       []*models.PolicyJson
-		testMetricName string = "TestMetricName"
+		pdb               *PolicySQLDB
+		dbConfig          db.DatabaseConfig
+		logger            lager.Logger
+		err               error
+		appIds            map[string]bool
+		scalingPolicy     *models.ScalingPolicy
+		policyJson        []byte
+		appId             string
+		policies          []*models.PolicyJson
+		testMetricName    string = "TestMetricName"
+		password          string
+		encryptedPassword []byte
+		isValid           bool
 	)
 
 	BeforeEach(func() {
@@ -227,6 +231,74 @@ var _ = Describe("PolicySQLDB", func() {
 					},
 				))
 			})
+		})
+	})
+
+	Describe("GetCustomMetricsCreds", func() {
+		BeforeEach(func() {
+			pdb, err = NewPolicySQLDB(dbConfig, logger)
+			Expect(err).NotTo(HaveOccurred())
+
+			cleanCredentialsTable()
+		})
+
+		AfterEach(func() {
+			err = pdb.Close()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			password, err = pdb.GetCustomMetricsCreds("username")
+		})
+
+		Context("when credentials table is empty", func() {
+			It("returns credentials", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(password).To(BeEmpty())
+			})
+		})
+
+		Context("when policy table is not empty", func() {
+			BeforeEach(func() {
+				insertCustomMetricsBindingCredentials("username", "password")
+			})
+
+			It("Should get the password", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(password).To(Equal("password"))
+			})
+
+		})
+	})
+
+	Describe("ValidateCustomMetricsCreds", func() {
+		BeforeEach(func() {
+			pdb, err = NewPolicySQLDB(dbConfig, logger)
+			Expect(err).NotTo(HaveOccurred())
+
+			cleanCredentialsTable()
+			encryptedPassword, _ = bcrypt.GenerateFromPassword([]byte("password"), 8)
+		})
+
+		AfterEach(func() {
+			err = pdb.Close()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			isValid = pdb.ValidateCustomMetricsCreds("username", "password")
+		})
+
+		Context("when policy table is not empty", func() {
+			BeforeEach(func() {
+				insertCustomMetricsBindingCredentials("username", string(encryptedPassword[:]))
+			})
+
+			It("Should get the password", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(isValid).To(BeTrue())
+			})
+
 		})
 	})
 })
