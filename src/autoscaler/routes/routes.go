@@ -28,12 +28,35 @@ const (
 
 	SyncActiveSchedulesPath      = "/v1/syncSchedules"
 	SyncActiveSchedulesRouteName = "SyncActiveSchedules"
+
+	ApiPolicyPath            = "/v1/apps/{appId}/policy"
+	ApiGetPolicyRouteName    = "GetPolicy"
+	ApiPutPolicyRouteName    = "PutPolicy"
+	ApiDeletePolicyRouteName = "DeletePolicy"
+
+	ApiGetScalingHistoryPath   = "/v1/apps/{appId}/scaling_histories"
+	ApiScalingHistoryRouteName = "GetScalingHistory"
+
+	ApiGetMetricsHistoryPath      = "/v1/apps/{appId}/metric_histories/{metricType}"
+	ApiGetMetricsHistoryRouteName = "GetMetricsHistory"
+
+	ApiCatalogPath      = "/sb/v2/catalog"
+	ApiCatalogRouteName = "GetCatalog"
+
+	ApiInstancePath            = "/sb/v2/service_instances/{instanceId}"
+	ApiCreateInstanceRouteName = "CreateInstance"
+	ApiDeleteInstanceRouteName = "DeleteInstance"
+
+	ApiBindingPath            = "/sb/v2/service_instances/{instanceId}/service_bindings/{bindingId}"
+	ApiCreateBindingRouteName = "CreateBinding"
+	ApiDeleteBindingRouteName = "DeleteBinding"
 )
 
 type AutoScalerRoute struct {
 	metricsCollectorRoutes *mux.Router
 	eventGeneratorRoutes   *mux.Router
 	scalingEngineRoutes    *mux.Router
+	apiRoutes              *mux.Router
 }
 
 var autoScalerRouteInstance = newRouters()
@@ -43,6 +66,7 @@ func newRouters() *AutoScalerRoute {
 		metricsCollectorRoutes: mux.NewRouter(),
 		eventGeneratorRoutes:   mux.NewRouter(),
 		scalingEngineRoutes:    mux.NewRouter(),
+		apiRoutes:              mux.NewRouter(),
 	}
 
 	instance.metricsCollectorRoutes.Path(MetricHistoriesPath).Methods(http.MethodGet).Name(GetMetricHistoriesRouteName)
@@ -55,6 +79,21 @@ func newRouters() *AutoScalerRoute {
 	instance.scalingEngineRoutes.Path(ActiveSchedulePath).Methods(http.MethodDelete).Name(DeleteActiveScheduleRouteName)
 	instance.scalingEngineRoutes.Path(ActiveSchedulesPath).Methods(http.MethodGet).Name(GetActiveSchedulesRouteName)
 	instance.scalingEngineRoutes.Path(SyncActiveSchedulesPath).Methods(http.MethodPut).Name(SyncActiveSchedulesRouteName)
+
+	instance.apiRoutes.Path(ApiPolicyPath).Methods(http.MethodGet).Name(ApiGetPolicyRouteName)
+	instance.apiRoutes.Path(ApiPolicyPath).Methods(http.MethodPut).Name(ApiPutPolicyRouteName)
+	instance.apiRoutes.Path(ApiPolicyPath).Methods(http.MethodDelete).Name(ApiDeletePolicyRouteName)
+
+	instance.apiRoutes.Path(ApiCatalogPath).Methods(http.MethodGet).Name(ApiCatalogRouteName)
+
+	instance.apiRoutes.Path(ApiInstancePath).Methods(http.MethodPut).Name(ApiCreateInstanceRouteName)
+	instance.apiRoutes.Path(ApiInstancePath).Methods(http.MethodDelete).Name(ApiDeleteInstanceRouteName)
+
+	instance.apiRoutes.Path(ApiBindingPath).Methods(http.MethodPut).Name(ApiCreateBindingRouteName)
+	instance.apiRoutes.Path(ApiBindingPath).Methods(http.MethodDelete).Name(ApiDeleteBindingRouteName)
+
+	instance.apiRoutes.Path(ApiGetScalingHistoryPath).Methods(http.MethodGet).Name(ApiScalingHistoryRouteName)
+	instance.apiRoutes.Path(ApiGetMetricsHistoryPath).Methods(http.MethodGet).Name(ApiGetMetricsHistoryRouteName)
 
 	return instance
 
@@ -69,4 +108,8 @@ func EventGeneratorRoutes() *mux.Router {
 
 func ScalingEngineRoutes() *mux.Router {
 	return autoScalerRouteInstance.scalingEngineRoutes
+}
+
+func ApiRoutes() *mux.Router {
+	return autoScalerRouteInstance.apiRoutes
 }
