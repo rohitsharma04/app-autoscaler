@@ -51,10 +51,23 @@ func (bdb *BindingSQLDB) Close() error {
 }
 
 func (bdb *BindingSQLDB) CreateServiceInstance(serviceInstanceId string, orgId string, spaceId string) error {
-	query := "INSERT INTO service_instance" +
+	query := "SELECT FROM service_instance WHERE service_instance_id = $1"
+	rows, err := bdb.sqldb.Query(query, serviceInstanceId)
+	if err != nil {
+		bdb.logger.Error("create-service-instance", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId, "orgid": orgId, "spaceid": spaceId})
+		return err
+	}
+
+	if rows.Next() {
+		rows.Close()
+		return db.ErrAlreadyExists
+	}
+	rows.Close()
+
+	query = "INSERT INTO service_instance" +
 		"(service_instance_id, org_id, space_id) " +
 		" VALUES($1, $2, $3)"
-	_, err := bdb.sqldb.Exec(query, serviceInstanceId, orgId, spaceId)
+	_, err = bdb.sqldb.Exec(query, serviceInstanceId, orgId, spaceId)
 
 	if err != nil {
 		bdb.logger.Error("create-service-instance", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId, "orgid": orgId, "spaceid": spaceId})
@@ -63,20 +76,45 @@ func (bdb *BindingSQLDB) CreateServiceInstance(serviceInstanceId string, orgId s
 }
 
 func (bdb *BindingSQLDB) DeleteServiceInstance(serviceInstanceId string) error {
-	query := "DELETE FROM service_instance WHERE service_instance_id = $1"
-	_, err := bdb.sqldb.Exec(query, serviceInstanceId)
-
+	query := "SELECT FROM service_instance WHERE service_instance_id = $1"
+	rows, err := bdb.sqldb.Query(query, serviceInstanceId)
 	if err != nil {
-		bdb.logger.Error("delete-service-instance", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId})
+		bdb.logger.Error("create-service-instance", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId})
+		return err
 	}
-	return err
+
+	if rows.Next() {
+		rows.Close()
+		query = "DELETE FROM service_instance WHERE service_instance_id = $1"
+		_, err = bdb.sqldb.Exec(query, serviceInstanceId)
+
+		if err != nil {
+			bdb.logger.Error("delete-service-instance", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId})
+		}
+		return err
+	}
+	rows.Close()
+	return db.ErrDoesNotExist
 }
 
 func (bdb *BindingSQLDB) CreateServiceBinding(bindingId string, serviceInstanceId string, appId string) error {
-	query := "INSERT INTO binding" +
+	query := "SELECT FROM binding WHERE binding_id = $1"
+	rows, err := bdb.sqldb.Query(query, bindingId)
+	if err != nil {
+		bdb.logger.Error("create-service-instance", err, lager.Data{"query": query, "bindingId": bindingId})
+		return err
+	}
+
+	if rows.Next() {
+		rows.Close()
+		return db.ErrAlreadyExists
+	}
+	rows.Close()
+
+	query = "INSERT INTO binding" +
 		"(binding_id, service_instance_id, app_id, created_at) " +
 		"VALUES($1, $2, $3, $4)"
-	_, err := bdb.sqldb.Exec(query, bindingId, serviceInstanceId, appId, time.Now())
+	_, err = bdb.sqldb.Exec(query, bindingId, serviceInstanceId, appId, time.Now())
 
 	if err != nil {
 		bdb.logger.Error("create-service-binding", err, lager.Data{"query": query, "serviceinstanceid": serviceInstanceId, "bindingid": bindingId, "appid": appId})
@@ -84,11 +122,24 @@ func (bdb *BindingSQLDB) CreateServiceBinding(bindingId string, serviceInstanceI
 	return err
 }
 func (bdb *BindingSQLDB) DeleteServiceBinding(bindingId string) error {
-	query := "DELETE FROM binding WHERE binding_id = $1"
-	_, err := bdb.sqldb.Exec(query, bindingId)
-
+	query := "SELECT FROM binding WHERE binding_id = $1"
+	rows, err := bdb.sqldb.Query(query, bindingId)
 	if err != nil {
-		bdb.logger.Error("delete-service-instance", err, lager.Data{"query": query, "bindingid": bindingId})
+		bdb.logger.Error("create-service-instance", err, lager.Data{"query": query, "bindingId": bindingId})
+		return err
 	}
-	return err
+
+	if rows.Next() {
+		rows.Close()
+		query = "DELETE FROM binding WHERE binding_id = $1"
+		_, err = bdb.sqldb.Exec(query, bindingId)
+
+		if err != nil {
+			bdb.logger.Error("delete-service-binding", err, lager.Data{"query": query, "bindingid": bindingId})
+		}
+		return err
+	}
+	rows.Close()
+
+	return db.ErrDoesNotExist
 }

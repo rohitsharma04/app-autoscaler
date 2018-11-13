@@ -3,6 +3,7 @@ package db
 import (
 	"autoscaler/healthendpoint"
 	"autoscaler/models"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -20,6 +21,9 @@ const (
 	DESCSTR string = "DESC"
 	ASCSTR  string = "ASC"
 )
+
+var ErrAlreadyExists = fmt.Errorf("already exists")
+var ErrDoesNotExist = fmt.Errorf("doesn't exist")
 
 type DatabaseConfig struct {
 	URL                   string        `yaml:"url"`

@@ -42,8 +42,20 @@ func (h *ApiHandler) CreateServiceInstance(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.bindingdb.CreateServiceInstance(instanceId, body.OrgGuid, body.SpaceGuid)
+	if instanceId == "" || body.OrgGUID == "" || body.SpaceGUID == "" || body.ServiceID == "" || body.PlanID == "" {
+		handlers.WriteJSONResponse(w, http.StatusBadRequest, models.ErrorResponse{
+			Code:    "Bad Request",
+			Message: "Malformed or missing mandatory data",
+		})
+		return
+	}
+
+	err = h.bindingdb.CreateServiceInstance(instanceId, body.OrgGUID, body.SpaceGUID)
 	if err != nil {
+		if err == db.ErrAlreadyExists {
+			w.Write(nil)
+			return
+		}
 		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "Interal-Server-Error",
 			Message: "Error creating service instance"})
@@ -61,15 +73,41 @@ func (h *ApiHandler) CreateServiceInstance(w http.ResponseWriter, r *http.Reques
 
 func (h *ApiHandler) DeleteServiceInstance(w http.ResponseWriter, r *http.Request, vars map[string]string) {
 	instanceId := vars["instanceId"]
-	err := h.bindingdb.DeleteServiceInstance(instanceId)
+
+	body := &models.BrokerCommonRequestBody{}
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "Interal-Server-Error",
+			Message: "Failed to read request body"})
+		return
+	}
+
+	if instanceId == "" || body.ServiceID == "" || body.PlanID == "" {
+		handlers.WriteJSONResponse(w, http.StatusBadRequest, models.ErrorResponse{
+			Code:    "Bad Request",
+			Message: "Malformed or missing mandatory data",
+		})
+		return
+	}
+
+	err = h.bindingdb.DeleteServiceInstance(instanceId)
+	if err != nil {
+		if err == db.ErrDoesNotExist {
+			handlers.WriteJSONResponse(w, http.StatusGone, models.ErrorResponse{
+				Code:    "Gone",
+				Message: "Service Instance Doesn't Exist"})
+			return
+		}
+
+		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
+			Code:    "Interal-Server-Error",
 			Message: "Error deleting service instance"})
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(nil)
+	w.Write([]byte("{}"))
 }
 
 func (h *ApiHandler) BindServiceInstance(w http.ResponseWriter, r *http.Request, vars map[string]string) {
@@ -85,8 +123,20 @@ func (h *ApiHandler) BindServiceInstance(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	err = h.bindingdb.CreateServiceBinding(bindingId, instanceId, body.AppId)
+	if instanceId == "" || bindingId == "" || body.ServiceID == "" || body.PlanID == "" {
+		handlers.WriteJSONResponse(w, http.StatusBadRequest, models.ErrorResponse{
+			Code:    "Bad Request",
+			Message: "Malformed or missing mandatory data",
+		})
+		return
+	}
+
+	err = h.bindingdb.CreateServiceBinding(bindingId, instanceId, body.AppID)
 	if err != nil {
+		if err == db.ErrAlreadyExists {
+			w.Write(nil)
+			return
+		}
 		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "Interal-Server-Error",
 			Message: "Error creating service binding"})
@@ -97,15 +147,39 @@ func (h *ApiHandler) BindServiceInstance(w http.ResponseWriter, r *http.Request,
 }
 
 func (h *ApiHandler) UnbindServiceInstance(w http.ResponseWriter, r *http.Request, vars map[string]string) {
+	instanceId := vars["instanceId"]
 	bindingId := vars["bindingId"]
 
-	err := h.bindingdb.DeleteServiceBinding(bindingId)
+	body := &models.BrokerCommonRequestBody{}
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
+		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
+			Code:    "Interal-Server-Error",
+			Message: "Failed to read request body"})
+		return
+	}
+
+	if instanceId == "" || bindingId == "" || body.ServiceID == "" || body.PlanID == "" {
+		handlers.WriteJSONResponse(w, http.StatusBadRequest, models.ErrorResponse{
+			Code:    "Bad Request",
+			Message: "Malformed or missing mandatory data",
+		})
+		return
+	}
+
+	err = h.bindingdb.DeleteServiceBinding(bindingId)
+	if err != nil {
+		if err == db.ErrDoesNotExist {
+			handlers.WriteJSONResponse(w, http.StatusGone, models.ErrorResponse{
+				Code:    "Gone",
+				Message: "Service Binding Doesn't Exist"})
+			return
+		}
 		handlers.WriteJSONResponse(w, http.StatusInternalServerError, models.ErrorResponse{
 			Code:    "Interal-Server-Error",
 			Message: "Error creating service binding"})
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write(nil)
+	w.Write([]byte("{}"))
 }
