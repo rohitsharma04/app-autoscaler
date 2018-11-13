@@ -44,6 +44,14 @@ type PolicyDB interface {
 	EmitHealthMetrics(h healthendpoint.Health, cclock clock.Clock, interval time.Duration)
 }
 
+type BindingDB interface {
+	CreateServiceInstance(serviceInstanceId string, orgId string, spaceId string) error
+	DeleteServiceInstance(serviceInstanceId string) error
+	CreateServiceBinding(bindingId string, serviceInstanceId string, appId string) error
+	DeleteServiceBinding(bindingId string) error
+	Close() error
+}
+
 type AppMetricDB interface {
 	SaveAppMetric(appMetric *models.AppMetric) error
 	SaveAppMetricsInBulk(metrics []*models.AppMetric) error
