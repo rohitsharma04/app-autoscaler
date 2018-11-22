@@ -1,0 +1,302 @@
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Autoscaler Policy JSON Schema",
+  "required": [
+    "instance_min_count",
+    "instance_max_count"
+  ],
+  "anyOf": [{
+      "required": ["scaling_rules"]
+    },
+    {
+      "required": ["schedules"]
+    }
+  ],
+  "properties": {
+    "instance_min_count": {
+      "$id": "#/properties/instance_min_count",
+      "type": "integer",
+      "title": "Minimum number of application instance always runs"
+    },
+    "instance_max_count": {
+      "$id": "#/properties/instance_max_count",
+      "type": "integer",
+      "title": "Maximum how many instances of application can be provisioned as part of application scaling"
+    },
+    "scaling_rules": {
+      "$id": "#/properties/scaling_rules",
+      "type": "array",
+      "title": "Dynamic Scaling_rules Schema",
+      "items": {
+        "$id": "#/properties/scaling_rules/items",
+        "type": "object",
+        "title": "Scaling_rules Items Schema",
+        "required": [
+          "metric_type",
+          "threshold",
+          "operator",
+          "adjustment"
+        ],
+        "properties": {
+          "metric_type": {
+            "$id": "#/properties/scaling_rules/items/properties/metric_type",
+            "type": "string",
+            "title": "The Metric_type Schema",
+            "pattern": "^[a-zA-Z0-9_]+$"
+          },
+          "breach_duration_secs": {
+            "$id": "#/properties/scaling_rules/items/properties/breach_duration_secs",
+            "type": "integer",
+            "title": "The Breach_duration_secs Schema",
+            "description": "The length of the past period when a scaling action might be triggered based on metric usage",
+            "maximum": 3600,
+            "minimum": 60
+          },
+          "threshold": {
+            "$id": "#/properties/scaling_rules/items/properties/threshold",
+            "type": "integer",
+            "title": "The Threshold Schema"
+          },
+          "operator": {
+            "$id": "#/properties/scaling_rules/items/properties/operator",
+            "type": "string",
+            "title": "The Operator Schema",
+            "description": "Operator is used in combination with the threshold value to compare the current metric value",
+            "enum": [
+              "<",
+              ">",
+              "<=",
+              ">="
+            ]
+          },
+          "cool_down_secs": {
+            "$id": "#/properties/scaling_rules/items/properties/cool_down_secs",
+            "type": "integer",
+            "title": "The Cool_down_secs Schema",
+            "description": "The interval between two successive scaling activity",
+            "maximum": 3600,
+            "minimum": 60
+          },
+          "adjustment": {
+            "$id": "#/properties/scaling_rules/items/properties/adjustment",
+            "type": "string",
+            "title": "The Adjustment Schema",
+            "description": "Magnitude of scaling in each step, +1 means scale up 1 Instance -2 means scale down 2 instances",
+            "pattern": "^[-+][1-9]+[0-9]*$"
+          }
+        }
+      }
+    },
+    "schedules": {
+      "$id": "#/properties/schedules",
+      "type": "object",
+      "title": "The Scaling Schedules Schema",
+      "required": [
+        "timezone"
+      ],
+      "anyOf": [{
+          "required": ["recurring_schedule"]
+        },
+        {
+          "required": ["specific_date"]
+        }
+      ],
+      "properties": {
+        "timezone": {
+          "$id": "#/properties/schedules/properties/timezone",
+          "type": "string",
+          "title": "The Timezone Schema",
+          "pattern": "^(.*)$"
+        },
+        "recurring_schedule": {
+          "$id": "#/properties/schedules/properties/recurring_schedule",
+          "type": "array",
+          "title": "The Recurring_schedule Schema",
+          "items": {
+            "$id": "#/properties/schedules/properties/recurring_schedule/items",
+            "type": "object",
+            "title": "The Recurring_schedule Items Schema",
+            "required": [
+              "start_time",
+              "end_time",
+              "instance_min_count",
+              "instance_max_count"
+            ],
+            "oneOf": [{
+                "required": ["days_of_week"]
+              },
+              {
+                "required": ["days_of_month"]
+              }
+            ],
+            "properties": {
+              "start_time": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/start_time",
+                "type": "string",
+                "title": "The Start_time Schema",
+                "pattern": "^(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$"
+              },
+              "end_time": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/end_time",
+                "type": "string",
+                "title": "The End_time Schema",
+                "pattern": "^(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$"
+              },
+              "days_of_week": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/days_of_week",
+                "type": "array",
+                "title": "The Days_of_week Schema",
+                "items": {
+                  "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/days_of_week/items",
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7
+                  ]
+                }
+              },
+              "days_of_month": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/days_of_month",
+                "type": "array",
+                "title": "The Days_of_month Schema",
+                "items": {
+                  "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/days_of_month/items",
+                  "type": "integer",
+                  "enum": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31
+                  ]
+                }
+              },
+              "instance_min_count": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/instance_min_count",
+                "type": "integer",
+                "title": "The Instance_min_count Schema"
+              },
+              "instance_max_count": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/instance_max_count",
+                "type": "integer",
+                "title": "The Instance_max_count Schema"
+              },
+              "initial_min_instance_count": {
+                "$id": "#/properties/schedules/properties/recurring_schedule/items/properties/initial_min_instance_count",
+                "type": "integer",
+                "title": "The Initial_min_instance_count Schema"
+              },
+              "start_date": {
+                "oneOf": [{
+                    "pattern": "^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$",
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      ""
+                    ],
+                    "type": "string"
+                  }
+                ],
+                "description": "Start date of the recurrence in YYYY-MM-DD format"
+              },
+              "end_date": {
+                "oneOf": [{
+                    "pattern": "^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$",
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      ""
+                    ],
+                    "type": "string"
+                  }
+                ],
+                "description": "End date of the recurrence in YYYY-MM-DD format"
+              }
+            }
+          }
+        },
+        "specific_date": {
+          "$id": "#/properties/schedules/properties/specific_date",
+          "type": "array",
+          "title": "The Specific_date Schema",
+          "items": {
+            "$id": "#/properties/schedules/properties/specific_date/items",
+            "type": "object",
+            "title": "The Items Schema",
+            "required": [
+              "start_date_time",
+              "end_date_time",
+              "instance_min_count",
+              "instance_max_count"
+            ],
+            "properties": {
+              "start_date_time": {
+                "$id": "#/properties/schedules/properties/specific_date/items/properties/start_date_time",
+                "type": "string",
+                "title": "The Start_date_time Schema",
+                "pattern": "^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$"
+              },
+              "end_date_time": {
+                "$id": "#/properties/schedules/properties/specific_date/items/properties/end_date_time",
+                "type": "string",
+                "title": "The End_date_time Schema",
+                "default": "",
+                "pattern": "^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$"
+              },
+              "instance_min_count": {
+                "$id": "#/properties/schedules/properties/specific_date/items/properties/instance_min_count",
+                "type": "integer",
+                "title": "The Instance_min_count Schema"
+              },
+              "instance_max_count": {
+                "$id": "#/properties/schedules/properties/specific_date/items/properties/instance_max_count",
+                "type": "integer",
+                "title": "The Instance_max_count Schema"
+              },
+              "initial_min_instance_count": {
+                "$id": "#/properties/schedules/properties/specific_date/items/properties/initial_min_instance_count",
+                "type": "integer",
+                "title": "The Initial_min_instance_count Schema"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
