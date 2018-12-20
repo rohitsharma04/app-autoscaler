@@ -4,7 +4,7 @@ dist: trusty
 sudo: required
 
 jdk:
-  - openjdk8
+  - openjdk10
 
 services:
   - postgresql

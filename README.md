@@ -23,12 +23,12 @@ The `App-AutoScaler` is provided as a Cloud Foundry service offering. Any applic
 
 ### System requirements
 
-* Java 8 or above
-* [Apache Maven][b] 3
-* Node 6.2 or above
+* Java 10 or above
+* [Apache Maven][b] 3.5
+* Node 8 or above
 * NPM 3.9.5 or above
 * [Cloud Foundry cf command line][f]
-* Go 1.7
+* Go 1.11
 
 ### Database requirement
 
