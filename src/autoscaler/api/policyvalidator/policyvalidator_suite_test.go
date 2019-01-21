@@ -1,4 +1,4 @@
-package validation_test
+package policyvalidator_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestPolicyvalidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "PolicyManager Suite")
+	RunSpecs(t, "PolicyValidator Suite")
 }

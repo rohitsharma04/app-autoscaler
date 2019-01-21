@@ -1,7 +1,7 @@
-package validation_test
+package policyvalidator_test
 
 import (
-	. "autoscaler/api/policymanager/validation"
+	. "autoscaler/api/policyvalidator"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,7 +14,7 @@ var _ = Describe("PolicyValidator", func() {
 		policyString    string
 	)
 	BeforeEach(func() {
-		policyValidator = NewPolicyValidator("../policy_json.schema.json")
+		policyValidator = NewPolicyValidator("./policy_json.schema.json")
 	})
 	JustBeforeEach(func() {
 		err = policyValidator.ValidatePolicy(policyString)
