@@ -45,7 +45,7 @@ func (dtr *DateTimeRange) overlaps(otherDtr *DateTimeRange) bool {
 
 func newPolicyValidationError(context *gojsonschema.JsonContext, formatString string, errDetails gojsonschema.ErrorDetails) *PolicyValidationError {
 	err := PolicyValidationError{}
-	err.SetType("custom_invalid_error")
+	err.SetType("custom_invalid_policy_error")
 	err.SetContext(context)
 	err.SetDescriptionFormat(formatString)
 	err.SetDetails(errDetails)
@@ -108,6 +108,11 @@ func (pv *PolicyValidator) validateAttributes(policy *models.ScalingPolicy, resu
 	}
 	schedulesContext := gojsonschema.NewJsonContext("schedules", rootContext)
 
+	pv.validateRecurringSchedules(policy, schedulesContext, result)
+	pv.validateSpecificDateSchedules(policy, schedulesContext, result)
+}
+
+func (pv *PolicyValidator) validateRecurringSchedules(policy *models.ScalingPolicy, schedulesContext *gojsonschema.JsonContext, result *gojsonschema.Result) {
 	recurringScheduleContext := gojsonschema.NewJsonContext("recurring_schedule", schedulesContext)
 	for i, recSched := range policy.Schedules.RecurringSchedules {
 		if recSched.ScheduledInstanceMin >= recSched.ScheduledInstanceMax {
@@ -120,8 +125,23 @@ func (pv *PolicyValidator) validateAttributes(policy *models.ScalingPolicy, resu
 			err := newPolicyValidationError(instanceMinContext, formatString, errDetails)
 			result.AddError(err, errDetails)
 		}
+
+		if recSched.ScheduledInstanceInit > recSched.ScheduledInstanceMax {
+			initialInstanceMinContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d.initial_min_instance_count", i), recurringScheduleContext)
+			errDetails := gojsonschema.ErrorDetails{
+				"initial_min_instance_count": recSched.ScheduledInstanceInit,
+				"instance_max_count":         recSched.ScheduledInstanceMin,
+			}
+			formatString := "initial_min_instance_count {{.initial_min_instance_count}} is greater than instance_max_count {{.instance_max_count}}"
+			err := newPolicyValidationError(initialInstanceMinContext, formatString, errDetails)
+			result.AddError(err, errDetails)
+		}
 	}
 
+	pv.validateOverlappingInRecurringSchedules(policy, recurringScheduleContext, result)
+}
+
+func (pv *PolicyValidator) validateSpecificDateSchedules(policy *models.ScalingPolicy, schedulesContext *gojsonschema.JsonContext, result *gojsonschema.Result) {
 	specficDateScheduleContext := gojsonschema.NewJsonContext("specific_date", schedulesContext)
 	for i, specSched := range policy.Schedules.SpecificDateSchedules {
 		if specSched.ScheduledInstanceMin >= specSched.ScheduledInstanceMax {
@@ -134,10 +154,19 @@ func (pv *PolicyValidator) validateAttributes(policy *models.ScalingPolicy, resu
 			err := newPolicyValidationError(instanceMinContext, formatString, errDetails)
 			result.AddError(err, errDetails)
 		}
+		if specSched.ScheduledInstanceInit > specSched.ScheduledInstanceMax {
+			initialInstanceMinContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d.initial_min_instance_count", i), specficDateScheduleContext)
+			errDetails := gojsonschema.ErrorDetails{
+				"initial_min_instance_count": specSched.ScheduledInstanceInit,
+				"instance_max_count":         specSched.ScheduledInstanceMin,
+			}
+			formatString := "initial_min_instance_count {{.initial_min_instance_count}} is greater than instance_max_count {{.instance_max_count}}"
+			err := newPolicyValidationError(initialInstanceMinContext, formatString, errDetails)
+			result.AddError(err, errDetails)
+		}
 	}
 
 	pv.validateOverlappingInSpecificDateSchedules(policy, specficDateScheduleContext, result)
-	pv.validateOverlappingInRecurringSchedules(policy, recurringScheduleContext, result)
 }
 
 func (pv *PolicyValidator) validateOverlappingInRecurringSchedules(policy *models.ScalingPolicy, recurringScheduleContext *gojsonschema.JsonContext, result *gojsonschema.Result) {

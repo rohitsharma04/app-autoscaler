@@ -448,7 +448,7 @@ var _ = Describe("PolicyValidator", func() {
 		})
 		Context("Schedules", func() {
 
-			Context("when timezone is missing from schedules", func() {
+			Context("when timezone is missing", func() {
 				BeforeEach(func() {
 					policyString = `{
 					"instance_max_count":4,
@@ -472,7 +472,7 @@ var _ = Describe("PolicyValidator", func() {
 				})
 			})
 
-			Context("when both recurring_schedule and specific_date schedules are missing", func() {
+			Context("when recurring_schedule and specific_date schedules both are missing", func() {
 				BeforeEach(func() {
 					policyString = `{
 					"instance_max_count":4,
@@ -517,6 +517,10 @@ var _ = Describe("PolicyValidator", func() {
 				})
 			})
 
+			Context("recurring_schedules", func() {
+
+			})
+
 			Context("when only specific_date schedules are present", func() {
 				BeforeEach(func() {
 					policyString = `{
@@ -540,6 +544,307 @@ var _ = Describe("PolicyValidator", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
+
+			Context("specific_date schedule", func() {
+
+				Context("when start_date_time is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"start_date_time is required\"}]"))
+					})
+				})
+				Context("when start_date_time is not in correct format", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00+530",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0.start_date_time\", \"description\": \"Does not match pattern '^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$'\"}]"))
+					})
+				})
+
+				Context("when end_date_time is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+					"instance_max_count":4,
+					"instance_min_count":1,
+					"schedules":{
+						"timezone":"Asia/Shanghai",
+						"specific_date":[
+						   {
+							  "start_date_time":"2099-02-19T23:15",
+							  "instance_min_count":2,
+							  "instance_max_count":5,
+							  "initial_min_instance_count":3
+						   }
+						]
+					 }
+				}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"end_date_time is required\"}]"))
+					})
+				})
+				Context("when end_date_time is not in correct format", func() {
+					BeforeEach(func() {
+						policyString = `{
+					"instance_max_count":4,
+					"instance_min_count":1,
+					"schedules":{
+						"timezone":"Asia/Shanghai",
+						"specific_date":[
+						   {
+							  "start_date_time":"2099-01-04T20:00",
+							  "end_date_time":"2099-02-19T23:15+530",
+							  "instance_min_count":2,
+							  "instance_max_count":5,
+							  "initial_min_instance_count":3
+						   }
+						]
+					 }
+				}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0.end_date_time\", \"description\": \"Does not match pattern '^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])T(2[0-3]|1[0-9]|0[0-9]):([0-5][0-9])$'\"}]"))
+					})
+				})
+
+				Context("when instance_min_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"instance_min_count is required\"}]"))
+					})
+				})
+
+				Context("when instance_max_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"instance_max_count is required\"}]"))
+					})
+				})
+
+				Context("when initial_instance_min_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5
+							   }
+							]
+						 }
+					}`
+					})
+					It("should succeed", func() {
+						Expect(err).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when instance_min_count is greater than instance_max_count", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":5,
+								  "instance_max_count":2
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0.instance_min_count\", \"description\": \"instance_min_count 5 is higher or equal to instance_max_count 2\"}]"))
+					})
+				})
+
+				Context("when intial_instance_min_count is greater than instance_max_count", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":7
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0.initial_min_instance_count\", \"description\": \"initial_min_instance_count 7 is greater than instance_max_count 2\"}]"))
+					})
+				})
+
+				PContext("when start_date_time is before current_date_time", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2010-01-04T20:00",
+								  "end_date_time":"2099-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError(""))
+					})
+				})
+				PContext("when end_date_time is before start_date_time", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2098-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   }
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError(""))
+					})
+				})
+
+				Context("when there's an overlap between two specific_date schedules", func() {
+					BeforeEach(func() {
+						policyString = `{
+						"instance_max_count":4,
+						"instance_min_count":1,
+						"schedules":{
+							"timezone":"Asia/Shanghai",
+							"specific_date":[
+							   {
+								  "start_date_time":"2099-01-04T20:00",
+								  "end_date_time":"2098-02-19T23:15",
+								  "instance_min_count":2,
+								  "instance_max_count":5,
+								  "initial_min_instance_count":3
+							   },
+							   {
+								"start_date_time":"2090-01-04T20:00",
+								"end_date_time":"2099-02-19T23:15",
+								"instance_min_count":5,
+								"instance_max_count":10,
+								"initial_min_instance_count":7
+							 	}
+							]
+						 }
+					}`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"specific_date[0]:{start_date_time: 2099-01-04T20:00, end_date_time: 2099-01-04T20:00} and specific_date[1]:{start_date_time: 2090-01-04T20:00, end_date_time: 2090-01-04T20:00} are overlapping\"}]"))
+					})
+				})
+			})
+
 		})
 	})
 
