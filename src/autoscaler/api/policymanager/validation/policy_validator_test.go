@@ -478,7 +478,7 @@ var _ = Describe("PolicyValidator", func() {
 					"instance_max_count":4,
 					"instance_min_count":1,
 					"schedules":{
-						"timezone":"Asia/Shanghai"
+						"timezone":"Asia/Kolkata"
 					 }
 				}`
 				})
@@ -494,7 +494,7 @@ var _ = Describe("PolicyValidator", func() {
 					"instance_max_count":4,
 					"instance_min_count":1,
 					"schedules":{
-						"timezone":"Asia/Shanghai",
+						"timezone":"Asia/Kolkata",
 						"recurring_schedule":[
 							{
 							   "start_time":"10:00",
@@ -517,7 +517,624 @@ var _ = Describe("PolicyValidator", func() {
 				})
 			})
 
-			Context("recurring_schedules", func() {
+			Context("recurring_schedule", func() {
+				Context("when start_time is after end_time", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"08:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_max_count":5,
+										"instance_min_count":1,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"start_time is after end_time\"}]"))
+					})
+				})
+				Context("when start_date is after end_date", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date":"2099-01-01",
+										"end_date":"2098-01-01",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_max_count":5,
+										"instance_min_count":1,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"start_date is after end_date\"}]"))
+					})
+				})
+				Context("when start_date is before current_date", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date":"2015-01-01",
+										"end_date":"2098-01-01",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_max_count":5,
+										"instance_min_count":1,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"start_date is before current_date\"}]"))
+					})
+				})
+				Context("when instance_min_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"instance_min_count is required\"}]"))
+					})
+				})
+				Context("when instance_max_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"instance_max_count is required\"}]"))
+					})
+				})
+				Context("when initial_min_instance_count is missing", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should succeed", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+				})
+				Context("when instance_min_count is greater than instance_max_count", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":10,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0.instance_min_count\", \"description\": \"instance_min_count 10 is higher or equal to instance_max_count 10\"}]"))
+					})
+				})
+				Context("when initial_min_instance_count is greater than instance_max_count", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":7
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0.initial_min_instance_count\", \"description\": \"initial_min_instance_count 7 is greater than instance_max_count 2\"}]"))
+					})
+				})
+				Context("when overlapping time range in overlapping days_of_week", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"days_of_week":[
+											2,
+											4,
+											6
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"recurring_schedule[0] and recurring_schedule[1] are overlapping\"}]"))
+					})
+				})
+				Context("when both days_of_week and days_of_month are present", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"days_of_month":[
+											1,
+											2,
+											3
+										],
+										"instance_max_count":5,
+										"instance_min_count":1,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"Must validate one and only one schema (oneOf)\"}]"))
+					})
+				})
+				Context("when overlapping time range in non-overlapping days_of_week", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"days_of_week":[
+											4,
+											6
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should succeed", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+				})
+				Context("when overlapping time range in overlapping days_of_week in non-overlapping date range", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date": "2091-01-01",
+										"end_date": "2092-02-02",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"start_date": "2098-01-01",
+										"end_date": "2099-02-02",
+										"days_of_week":[
+											2,
+											4,
+											6
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should succeed", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+				})
+				Context("when overlapping time range in overlapping days_of_week in overlapping date range", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date": "2091-01-01",
+										"end_date": "2099-03-02",
+										"days_of_week":[
+											1,
+											2,
+											3
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"start_date": "2098-01-01",
+										"end_date": "2099-02-02",
+										"days_of_week":[
+											2,
+											4,
+											6
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"recurring_schedule[0] and recurring_schedule[1] are overlapping\"}]"))
+					})
+				})
+				Context("when overlapping time range in overlapping days_of_month", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_month":[
+											11,
+											22
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"days_of_month":[
+											22,
+											23
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"recurring_schedule[0] and recurring_schedule[1] are overlapping\"}]"))
+					})
+				})
+
+				Context("when overlapping time range in non-overlapping days_of_month", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"days_of_month":[
+											11,
+											12
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"days_of_month":[
+											22,
+											23
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should succeed", func() {
+						Expect(err).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when overlapping time range in overlapping days_of_month in non-overlapping date range", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date": "2091-01-01",
+										"end_date": "2092-02-02",
+										"days_of_month":[
+											11,
+											12
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"start_date": "2098-01-01",
+										"end_date": "2099-02-02",
+										"days_of_month":[
+											12,
+											23
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should succeed", func() {
+						Expect(err).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when overlapping time range in overlapping days_of_month in overlapping date range", func() {
+					BeforeEach(func() {
+						policyString = `{
+							"instance_max_count":4,
+							"instance_min_count":1,
+							"schedules":{
+								"timezone":"Asia/Kolkata",
+								"recurring_schedule":[
+									{
+										"start_time":"10:00",
+										"end_time":"18:00",
+										"start_date": "2091-01-01",
+										"end_date": "2099-02-02",
+										"days_of_month":[
+											11,
+											12
+										],
+										"instance_min_count":2,
+										"instance_max_count":5,
+										"initial_min_instance_count":3
+									},
+									{
+										"start_time":"08:00",
+										"end_time":"20:00",
+										"start_date": "2098-01-01",
+										"end_date": "2099-03-02",
+										"days_of_month":[
+											12,
+											23
+										],
+										"instance_min_count":2,
+										"instance_max_count":7,
+										"initial_min_instance_count":3
+									}
+								]
+							}
+						}
+					`
+					})
+					It("should fail", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0\", \"description\": \"recurring_schedule[0] and recurring_schedule[1] are overlapping\"}]"))
+					})
+				})
 
 			})
 
@@ -527,7 +1144,7 @@ var _ = Describe("PolicyValidator", func() {
 					"instance_max_count":4,
 					"instance_min_count":1,
 					"schedules":{
-						"timezone":"Asia/Shanghai",
+						"timezone":"Asia/Kolkata",
 						"specific_date":[
 						   {
 							  "start_date_time":"2099-01-04T20:00",
@@ -553,7 +1170,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "end_date_time":"2099-02-19T23:15",
@@ -576,7 +1193,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00+530",
@@ -601,7 +1218,7 @@ var _ = Describe("PolicyValidator", func() {
 					"instance_max_count":4,
 					"instance_min_count":1,
 					"schedules":{
-						"timezone":"Asia/Shanghai",
+						"timezone":"Asia/Kolkata",
 						"specific_date":[
 						   {
 							  "start_date_time":"2099-02-19T23:15",
@@ -624,7 +1241,7 @@ var _ = Describe("PolicyValidator", func() {
 					"instance_max_count":4,
 					"instance_min_count":1,
 					"schedules":{
-						"timezone":"Asia/Shanghai",
+						"timezone":"Asia/Kolkata",
 						"specific_date":[
 						   {
 							  "start_date_time":"2099-01-04T20:00",
@@ -649,7 +1266,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -673,7 +1290,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -697,7 +1314,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -720,7 +1337,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -744,7 +1361,7 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -759,17 +1376,17 @@ var _ = Describe("PolicyValidator", func() {
 					})
 					It("should fail", func() {
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.recurring_schedule.0.initial_min_instance_count\", \"description\": \"initial_min_instance_count 7 is greater than instance_max_count 2\"}]"))
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0.initial_min_instance_count\", \"description\": \"initial_min_instance_count 7 is greater than instance_max_count 2\"}]"))
 					})
 				})
 
-				PContext("when start_date_time is before current_date_time", func() {
+				Context("when start_date_time is before current_date_time", func() {
 					BeforeEach(func() {
 						policyString = `{
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2010-01-04T20:00",
@@ -784,16 +1401,16 @@ var _ = Describe("PolicyValidator", func() {
 					})
 					It("should fail", func() {
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError(""))
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"start_date_time is before current_date_time\"}]"))
 					})
 				})
-				PContext("when end_date_time is before start_date_time", func() {
+				Context("when end_date_time is before start_date_time", func() {
 					BeforeEach(func() {
 						policyString = `{
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
 								  "start_date_time":"2099-01-04T20:00",
@@ -808,7 +1425,7 @@ var _ = Describe("PolicyValidator", func() {
 					})
 					It("should fail", func() {
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError(""))
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"start_date_time is after end_date_time\"}]"))
 					})
 				})
 
@@ -818,17 +1435,17 @@ var _ = Describe("PolicyValidator", func() {
 						"instance_max_count":4,
 						"instance_min_count":1,
 						"schedules":{
-							"timezone":"Asia/Shanghai",
+							"timezone":"Asia/Kolkata",
 							"specific_date":[
 							   {
-								  "start_date_time":"2099-01-04T20:00",
+								  "start_date_time":"2097-01-04T20:00",
 								  "end_date_time":"2098-02-19T23:15",
 								  "instance_min_count":2,
 								  "instance_max_count":5,
 								  "initial_min_instance_count":3
 							   },
 							   {
-								"start_date_time":"2090-01-04T20:00",
+								"start_date_time":"2090-01-03T20:00",
 								"end_date_time":"2099-02-19T23:15",
 								"instance_min_count":5,
 								"instance_max_count":10,
@@ -840,7 +1457,7 @@ var _ = Describe("PolicyValidator", func() {
 					})
 					It("should fail", func() {
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"specific_date[0]:{start_date_time: 2099-01-04T20:00, end_date_time: 2099-01-04T20:00} and specific_date[1]:{start_date_time: 2090-01-04T20:00, end_date_time: 2090-01-04T20:00} are overlapping\"}]"))
+						Expect(err).To(MatchError("[{\"context\": \"(root).schedules.specific_date.0\", \"description\": \"specific_date[0]:{start_date_time: 2097-01-04T20:00, end_date_time: 2097-01-04T20:00} and specific_date[1]:{start_date_time: 2090-01-03T20:00, end_date_time: 2090-01-03T20:00} are overlapping\"}]"))
 					})
 				})
 			})
@@ -881,7 +1498,7 @@ var _ = Describe("PolicyValidator", func() {
 				 }
 				],
 				"schedules":{
-				   "timezone":"Asia/Shanghai",
+				   "timezone":"Asia/Kolkata",
 				   "recurring_schedule":[
 					  {
 						 "start_time":"10:00",

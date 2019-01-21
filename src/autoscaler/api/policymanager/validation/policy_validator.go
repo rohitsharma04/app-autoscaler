@@ -29,10 +29,11 @@ type DateTimeRange struct {
 	endDateTime   time.Time
 }
 
-func newDateTimeRange(startDateTime string, endDateTime string) *DateTimeRange {
+func newDateTimeRange(startDateTime string, endDateTime string, timezone string) *DateTimeRange {
+	location, _ := time.LoadLocation(timezone)
 	dateTimeRange := DateTimeRange{}
-	dateTimeRange.startDateTime, _ = time.Parse(DateTimeLayout, startDateTime)
-	dateTimeRange.endDateTime, _ = time.Parse(DateTimeLayout, endDateTime)
+	dateTimeRange.startDateTime, _ = time.ParseInLocation(DateTimeLayout, startDateTime, location)
+	dateTimeRange.endDateTime, _ = time.ParseInLocation(DateTimeLayout, endDateTime, location)
 	return &dateTimeRange
 }
 
@@ -136,6 +137,61 @@ func (pv *PolicyValidator) validateRecurringSchedules(policy *models.ScalingPoli
 			err := newPolicyValidationError(initialInstanceMinContext, formatString, errDetails)
 			result.AddError(err, errDetails)
 		}
+
+		//start_time should be before end_time
+		if compareTimesGTEQ(recSched.StartTime, recSched.EndTime) {
+			currentRecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), recurringScheduleContext)
+			errDetails := gojsonschema.ErrorDetails{
+				"i": i,
+			}
+			formatString := "start_time is after end_time"
+			err := newPolicyValidationError(currentRecSchedContext, formatString, errDetails)
+			result.AddError(err, errDetails)
+		}
+		// start_date should be after current_date and before end_date
+		var startDate, endDate time.Time
+		location, _ := time.LoadLocation(policy.Schedules.Timezone)
+
+		if recSched.StartDate != "" {
+			startDate, _ = time.ParseInLocation(DateLayout, recSched.StartDate, location)
+
+			if startDate.Sub(time.Now()) < 0 {
+				currentRecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), recurringScheduleContext)
+				errDetails := gojsonschema.ErrorDetails{
+					"i": i,
+				}
+				formatString := "start_date is before current_date"
+				err := newPolicyValidationError(currentRecSchedContext, formatString, errDetails)
+				result.AddError(err, errDetails)
+			}
+		}
+		if recSched.StartDate != "" {
+			endDate, _ = time.ParseInLocation(DateLayout, recSched.EndDate, location)
+
+			if endDate.Sub(time.Now()) < 0 {
+				currentRecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), recurringScheduleContext)
+				errDetails := gojsonschema.ErrorDetails{
+					"i": i,
+				}
+				formatString := "end_date is before current_date"
+				err := newPolicyValidationError(currentRecSchedContext, formatString, errDetails)
+				result.AddError(err, errDetails)
+			}
+		}
+		if recSched.StartDate != "" && recSched.EndDate != "" {
+			startDate, _ = time.ParseInLocation(DateLayout, recSched.StartDate, location)
+			endDate, _ = time.ParseInLocation(DateLayout, recSched.EndDate, location)
+			if endDate.Sub(startDate) < 0 {
+
+				currentRecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), recurringScheduleContext)
+				errDetails := gojsonschema.ErrorDetails{
+					"i": i,
+				}
+				formatString := "start_date is after end_date"
+				err := newPolicyValidationError(currentRecSchedContext, formatString, errDetails)
+				result.AddError(err, errDetails)
+			}
+		}
 	}
 
 	pv.validateOverlappingInRecurringSchedules(policy, recurringScheduleContext, result)
@@ -164,6 +220,27 @@ func (pv *PolicyValidator) validateSpecificDateSchedules(policy *models.ScalingP
 			err := newPolicyValidationError(initialInstanceMinContext, formatString, errDetails)
 			result.AddError(err, errDetails)
 		}
+
+		// start_date_time should be after current_date_time and before end_date_time
+		dateTime := newDateTimeRange(specSched.StartDateTime, specSched.EndDateTime, policy.Schedules.Timezone)
+		if dateTime.startDateTime.Sub(time.Now()) <= 0 {
+			currentSpecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), specficDateScheduleContext)
+			errDetails := gojsonschema.ErrorDetails{
+				"i": i,
+			}
+			formatString := "start_date_time is before current_date_time"
+			err := newPolicyValidationError(currentSpecSchedContext, formatString, errDetails)
+			result.AddError(err, errDetails)
+		}
+		if dateTime.endDateTime.Sub(dateTime.startDateTime) <= 0 {
+			currentSpecSchedContext := gojsonschema.NewJsonContext(fmt.Sprintf("%d", i), specficDateScheduleContext)
+			errDetails := gojsonschema.ErrorDetails{
+				"i": i,
+			}
+			formatString := "start_date_time is after end_date_time"
+			err := newPolicyValidationError(currentSpecSchedContext, formatString, errDetails)
+			result.AddError(err, errDetails)
+		}
 	}
 
 	pv.validateOverlappingInSpecificDateSchedules(policy, specficDateScheduleContext, result)
@@ -173,9 +250,26 @@ func (pv *PolicyValidator) validateOverlappingInRecurringSchedules(policy *model
 	length := len(policy.Schedules.RecurringSchedules)
 	recScheds := policy.Schedules.RecurringSchedules
 	for j := 0; j < length-1; j++ {
-		for i := j + 1; j < length; j++ {
+		for i := j + 1; i < length; i++ {
 			if (recScheds[i].DaysOfWeek != nil && len(recScheds[i].DaysOfWeek) > 0) && (recScheds[j].DaysOfWeek != nil && len(recScheds[j].DaysOfWeek) > 0) {
 				if hasIntersection(recScheds[i].DaysOfWeek, recScheds[j].DaysOfWeek) {
+					if compareTimesGTEQ(recScheds[j].EndTime, recScheds[i].StartTime) && compareTimesGTEQ(recScheds[i].EndTime, recScheds[j].StartTime) &&
+						compareDatesGTEQ(recScheds[j].EndDate, recScheds[i].StartDate) && compareDatesGTEQ(recScheds[i].EndDate, recScheds[j].StartDate) {
+						context := gojsonschema.NewJsonContext(fmt.Sprintf("%d", j), recurringScheduleContext)
+						errDetails := gojsonschema.ErrorDetails{
+							"i": i,
+							"j": j,
+						}
+
+						formatString := "recurring_schedule[{{.j}}] and recurring_schedule[{{.i}}] are overlapping"
+						err := newPolicyValidationError(context, formatString, errDetails)
+						result.AddError(err, errDetails)
+					}
+				}
+			}
+
+			if (recScheds[i].DaysOfMonth != nil && len(recScheds[i].DaysOfMonth) > 0) && (recScheds[j].DaysOfMonth != nil && len(recScheds[j].DaysOfMonth) > 0) {
+				if hasIntersection(recScheds[i].DaysOfMonth, recScheds[j].DaysOfMonth) {
 					if compareTimesGTEQ(recScheds[j].EndTime, recScheds[i].StartTime) && compareTimesGTEQ(recScheds[i].EndTime, recScheds[j].StartTime) &&
 						compareDatesGTEQ(recScheds[j].EndDate, recScheds[i].StartDate) && compareDatesGTEQ(recScheds[i].EndDate, recScheds[j].StartDate) {
 						context := gojsonschema.NewJsonContext(fmt.Sprintf("%d", j), recurringScheduleContext)
@@ -198,7 +292,7 @@ func (pv *PolicyValidator) validateOverlappingInSpecificDateSchedules(policy *mo
 	length := len(policy.Schedules.SpecificDateSchedules)
 	var dateTimeRangeList []*DateTimeRange
 	for _, specSched := range policy.Schedules.SpecificDateSchedules {
-		dateTimeRangeList = append(dateTimeRangeList, newDateTimeRange(specSched.StartDateTime, specSched.EndDateTime))
+		dateTimeRangeList = append(dateTimeRangeList, newDateTimeRange(specSched.StartDateTime, specSched.EndDateTime, policy.Schedules.Timezone))
 	}
 
 	for j := 0; j < length; j++ {
@@ -253,7 +347,7 @@ func hasIntersection(a []int, b []int) bool {
 func compareTimesGTEQ(firstTime string, secondTime string) bool {
 	ft, _ := time.Parse(TimeLayout, firstTime)
 	st, _ := time.Parse(TimeLayout, secondTime)
-	if st.Sub(ft) >= 0 {
+	if ft.Sub(st) >= 0 {
 		return true
 	}
 	return false
@@ -268,7 +362,7 @@ func compareDatesGTEQ(firstDate string, secondDate string) bool {
 	}
 	fd, _ := time.Parse(DateLayout, firstDate)
 	sd, _ := time.Parse(DateLayout, secondDate)
-	if sd.Sub(fd) >= 0 {
+	if fd.Sub(sd) >= 0 {
 		return true
 	}
 	return false
