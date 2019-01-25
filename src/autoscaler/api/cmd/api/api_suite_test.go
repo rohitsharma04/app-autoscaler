@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"autoscaler/api/config"
+	"autoscaler/cf"
 	"autoscaler/db"
 	"database/sql"
 	"io/ioutil"
@@ -26,12 +27,13 @@ const (
 )
 
 var (
-	apPath       string
-	cfg          config.Config
-	apPort       int
-	configFile   *os.File
-	httpClient   *http.Client
-	catalogBytes []byte
+	apPath        string
+	cfg           config.Config
+	brokerPort    int
+	publicApiPort int
+	configFile    *os.File
+	httpClient    *http.Client
+	catalogBytes  []byte
 )
 
 func TestApi(t *testing.T) {
@@ -62,10 +64,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(pathsByte []byte) {
 	apPath = string(pathsByte)
 
-	apPort = 8000 + GinkgoParallelNode()
-	cfg.BrokerServer.Port = apPort
+	brokerPort = 8000 + GinkgoParallelNode()
+	publicApiPort = 9000 + GinkgoParallelNode()
+
+	cfg.BrokerServer.Port = brokerPort
+	cfg.PublicApiServer.Port = publicApiPort
 	cfg.Logging.Level = "info"
 	cfg.DB.BindingDB = db.DatabaseConfig{
+		URL:                   os.Getenv("DBURL"),
+		MaxOpenConnections:    10,
+		MaxIdleConnections:    5,
+		ConnectionMaxLifetime: 10 * time.Second,
+	}
+	cfg.DB.PolicyDB = db.DatabaseConfig{
 		URL:                   os.Getenv("DBURL"),
 		MaxOpenConnections:    10,
 		MaxIdleConnections:    5,
@@ -75,6 +86,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg.BrokerPassword = password
 	cfg.CatalogPath = "../../exampleconfig/catalog-example.json"
 	cfg.CatalogSchemaPath = "../../schemas/catalog.schema.json"
+
+	cfg.MetricsCollector.MetricsCollectorUrl = "http://localhost:8083"
+	cfg.EventGenerator.EventGeneratorUrl = "http://localhost:8084"
+	cfg.ScalingEngine.ScalingEngineUrl = "http://localhost:8085"
+
+	cfg.UseBuildInMode = false
+
+	cfg.CF.API = "http://api.bosh-lite.com"
+	cfg.CF.GrantType = cf.GrantTypeClientCredentials
+	cfg.CF.ClientID = "client-id"
+	cfg.CF.Secret = "client-secret"
+	cfg.CF.SkipSSLValidation = true
 
 	configFile = writeConfig(&cfg)
 
