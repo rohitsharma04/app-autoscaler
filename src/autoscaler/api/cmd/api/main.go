@@ -7,6 +7,7 @@ import (
 
 	"autoscaler/api/brokerserver"
 	"autoscaler/api/config"
+	"autoscaler/api/publicapiserver"
 	"autoscaler/db"
 	"autoscaler/db/sqldb"
 	"autoscaler/helpers"
@@ -56,14 +57,29 @@ func main() {
 	}
 	defer bindingDB.Close()
 
-	httpServer, err := brokerserver.NewBrokerServer(logger.Session("broker_http_server"), conf, bindingDB)
+	brokerHttpServer, err := brokerserver.NewBrokerServer(logger.Session("broker_http_server"), conf, bindingDB)
 	if err != nil {
-		logger.Error("failed to create http server", err)
+		logger.Error("failed to create broker http server", err)
+		os.Exit(1)
+	}
+
+	var policyDb db.PolicyDB
+	policyDb, err = sqldb.NewPolicySQLDB(conf.DB.PolicyDB, logger.Session("policydb-db"))
+	if err != nil {
+		logger.Error("failed to connect to policydb database", err, lager.Data{"dbConfig": conf.DB.PolicyDB})
+		os.Exit(1)
+	}
+	defer policyDb.Close()
+
+	publicApiHttpServer, err := publicapiserver.NewPublicApiServer(logger.Session("public_api_http_server"), conf, policyDb)
+	if err != nil {
+		logger.Error("failed to create public api http server", err)
 		os.Exit(1)
 	}
 
 	members := grouper.Members{
-		{"broker_http_server", httpServer},
+		{"broker_http_server", brokerHttpServer},
+		{"public_api_http_server", publicApiHttpServer},
 	}
 	monitor := ifrit.Invoke(sigmon.New(grouper.NewOrdered(os.Interrupt, members)))
 

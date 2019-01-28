@@ -67,7 +67,7 @@ type Config struct {
 	DashboardRedirectURI string                 `yaml:"dashboard_redirect_uri"`
 	ScalingEngine        ScalingEngineConfig    `yaml:"scaling_engine"`
 	MetricsCollector     MetricsCollectorConfig `yaml:"metrics_collector"`
-	EventGenerator       EventGeneratorConfig   `yaml"event_generator"`
+	EventGenerator       EventGeneratorConfig   `yaml:"event_generator"`
 	CF                   cf.CFConfig            `yaml:"cf"`
 	UseBuildInMode       bool                   `yaml:"use_buildin_mode"`
 }
