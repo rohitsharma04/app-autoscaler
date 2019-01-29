@@ -48,6 +48,7 @@ var _ = BeforeSuite(func() {
 		BrokerPassword:    password,
 		CatalogPath:       "../exampleconfig/catalog-example.json",
 		CatalogSchemaPath: "../schemas/catalog.schema.json",
+		InfoFilePath:      "../exampleconfig/info-file.json",
 	}
 	fakeBindingDB := &fakes.FakeBindingDB{}
 

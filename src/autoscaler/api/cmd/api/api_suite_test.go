@@ -4,11 +4,13 @@ import (
 	"autoscaler/api/config"
 	"autoscaler/cf"
 	"autoscaler/db"
+	"autoscaler/models"
 	"database/sql"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -67,6 +69,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	brokerPort = 8000 + GinkgoParallelNode()
 	publicApiPort = 9000 + GinkgoParallelNode()
 
+	testCertDir := "../../../../../test-certs"
+
 	cfg.BrokerServer.Port = brokerPort
 	cfg.PublicApiServer.Port = publicApiPort
 	cfg.Logging.Level = "info"
@@ -86,10 +90,32 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg.BrokerPassword = password
 	cfg.CatalogPath = "../../exampleconfig/catalog-example.json"
 	cfg.CatalogSchemaPath = "../../schemas/catalog.schema.json"
+	cfg.InfoFilePath = "../exampleconfig/info-file.json"
 
-	cfg.MetricsCollector.MetricsCollectorUrl = "http://localhost:8083"
-	cfg.EventGenerator.EventGeneratorUrl = "http://localhost:8084"
-	cfg.ScalingEngine.ScalingEngineUrl = "http://localhost:8085"
+	cfg.MetricsCollector = config.MetricsCollectorConfig{
+		MetricsCollectorUrl: "http://localhost:8083",
+		TLSClientCerts: models.TLSCerts{
+			KeyFile:    filepath.Join(testCertDir, "metricscollector.key"),
+			CertFile:   filepath.Join(testCertDir, "metricscollector.crt"),
+			CACertFile: filepath.Join(testCertDir, "autoscaler-ca.crt"),
+		},
+	}
+	cfg.EventGenerator = config.EventGeneratorConfig{
+		EventGeneratorUrl: "http://localhost:8084",
+		TLSClientCerts: models.TLSCerts{
+			KeyFile:    filepath.Join(testCertDir, "eventgenerator.key"),
+			CertFile:   filepath.Join(testCertDir, "eventgenerator.crt"),
+			CACertFile: filepath.Join(testCertDir, "autoscaler-ca.crt"),
+		},
+	}
+	cfg.ScalingEngine = config.ScalingEngineConfig{
+		ScalingEngineUrl: "http://localhost:8085",
+		TLSClientCerts: models.TLSCerts{
+			KeyFile:    filepath.Join(testCertDir, "scalingengine.key"),
+			CertFile:   filepath.Join(testCertDir, "scalingengine.crt"),
+			CACertFile: filepath.Join(testCertDir, "autoscaler-ca.crt"),
+		},
+	}
 
 	cfg.UseBuildInMode = false
 

@@ -27,9 +27,14 @@ func NewPublicApiServer(logger lager.Logger, conf *config.Config, policydb db.Po
 	oam := NewOauthMiddleware(logger, conf)
 
 	r := routes.PublicApiRoutes()
+	r.Get(routes.PublicApiInfoRouteName).Handler(VarsFunc(pah.GetApiInfo))
+	r.Get(routes.PublicApiHealthRouteName).Handler(VarsFunc(pah.GetHealth))
 
-	r.Use(oam.Middleware)
-	r.Get(routes.PublicApiScalingHistoryRouteName).Handler(VarsFunc(pah.GetScalingHistories))
+	rp := routes.PublicApiProtectedRoutes()
+	rp.Use(oam.Middleware)
+	rp.Get(routes.PublicApiScalingHistoryRouteName).Handler(VarsFunc(pah.GetScalingHistories))
+	rp.Get(routes.PublicApiMetricsHistoryRouteName).Handler(VarsFunc(pah.GetInstanceMetricsHistories))
+	rp.Get(routes.PublicApiAggregatedMetricsHistoryRouteName).Handler(VarsFunc(pah.GetAggregatedMetricsHistories))
 
 	addr := fmt.Sprintf("0.0.0.0:%d", conf.PublicApiServer.Port)
 

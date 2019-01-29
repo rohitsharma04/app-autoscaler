@@ -68,6 +68,7 @@ event_generator:
     cert_file: /var/vcap/jobs/autoscaler/config/certs/eg.crt
     ca_file: /var/vcap/jobs/autoscaler/config/certs/autoscaler-ca.crt
 use_buildin_mode: false
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -124,6 +125,7 @@ event_generator:
     cert_file: /var/vcap/jobs/autoscaler/config/certs/eg.crt
     ca_file: /var/vcap/jobs/autoscaler/config/certs/autoscaler-ca.crt
 use_buildin_mode: false
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -168,6 +170,7 @@ metrics_collector:
   metrics_collector_url: http://localhost:8084
 event_generator:
   event_generator_url: http://localhost:8083
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -248,6 +251,7 @@ event_generator:
     cert_file: /var/vcap/jobs/autoscaler/config/certs/eg.crt
     ca_file: /var/vcap/jobs/autoscaler/config/certs/autoscaler-ca.crt
 use_buildin_mode: false
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -303,6 +307,7 @@ event_generator:
     cert_file: /var/vcap/jobs/autoscaler/config/certs/eg.crt
     ca_file: /var/vcap/jobs/autoscaler/config/certs/autoscaler-ca.crt
 use_buildin_mode: false
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -358,6 +363,7 @@ event_generator:
     cert_file: /var/vcap/jobs/autoscaler/config/certs/eg.crt
     ca_file: /var/vcap/jobs/autoscaler/config/certs/autoscaler-ca.crt
 use_buildin_mode: false
+info_file_path: /var/vcap/jobs/autoscaer/config/info-file.json
 cf:
   api: https://api.example.com
   client_id: client-id
@@ -401,6 +407,8 @@ cf:
 			conf.CF.ClientID = "client-id"
 			conf.CF.Secret = "secret"
 			conf.CF.GrantType = cf.GrantTypeClientCredentials
+
+			conf.InfoFilePath = "../exampleconfig/info-file.json"
 
 		})
 		JustBeforeEach(func() {
@@ -509,6 +517,15 @@ cf:
 			})
 			It("should err", func() {
 				Expect(err).To(MatchError(MatchRegexp("{\"Invalid type. Expected: boolean, given: integer\"}")))
+			})
+		})
+
+		Context("when info_file_path is not set", func() {
+			BeforeEach(func() {
+				conf.InfoFilePath = ""
+			})
+			It("should err", func() {
+				Expect(err).To(MatchError(MatchRegexp("Configuration error: InfoFilePath is empty")))
 			})
 		})
 	})
